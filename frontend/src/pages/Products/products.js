@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { medicineService } from '../../services/medicineService';
+import  medicineService  from '../../services/medicineService';
 import { usePagination } from '../../hooks/usePagination';
 import Card from '../../components/UI/Card';
 import Table from '../../components/UI/Table';

@@ -1,7 +1,7 @@
-import { apiClient } from './apiClient'; // remove {} if you export default from apiClient.js
+import { apiClient } from './apiClient';
 
 const pharmacyService = {
- registerPharmacy: (data) => apiClient.post('/pharmacies/register/', data),
+ registerPharmacy: (data) => apiClient.post('/pharmacies/register/', data).then(res => res.data),
 
   getPharmacyInfo: () => apiClient.get('/pharmacy').then(res => res.data),
 

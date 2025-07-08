@@ -23,7 +23,7 @@ User = get_user_model()
 class PharmacyViewSet(viewsets.ModelViewSet):
     queryset = Pharmacy.objects.all()
     serializer_class = PharmacySerializer
-    permission_classes = [IsAuthenticated, CannotDeletePharmacy]
+    permission_classes = [IsAuthenticated,  CannotDeletePharmacy]
 
     def get_queryset(self):
         user = self.request.user

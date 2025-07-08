@@ -1,6 +1,6 @@
 import { apiClient } from './apiClient';
 
-export const authService = {
+const authService = {
   registerUser: (payload) => apiClient.post('register-user/', payload).then(res => res.data),
 
   login: (payload) => apiClient.post('token/', payload).then(res => res.data),
@@ -14,3 +14,5 @@ export const authService = {
     await apiClient.post('/auth/logout/');
   },
 };
+
+export default authService;

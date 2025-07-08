@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const NotificationContext = createContext();
 
@@ -13,20 +13,41 @@ export const useNotification = () => {
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
-  const addNotification = (notification) => {
-    const id = Date.now();
-    setNotifications(prev => [...prev, { ...notification, id }]);
-    setTimeout(() => removeNotification(id), 5000);
-  };
+  const addNotification = useCallback((notification) => {
+    const id = Date.now() + Math.random();
+    const newNotification = {
+      id,
+      type: 'info',
+      duration: 5000,
+      ...notification
+    };
+    
+    setNotifications(prev => [...prev, newNotification]);
+    
+    // Auto-remove after duration
+    setTimeout(() => {
+      removeNotification(id);
+    }, newNotification.duration);
+  }, []);
 
-  const removeNotification = (id) => {
+  const removeNotification = useCallback((id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  }, []);
+
+  const showNotification = useCallback((message, type = 'info', title = null) => {
+    addNotification({ message, type, title });
+  }, [addNotification]);
+
+  const clearAll = useCallback(() => {
+    setNotifications([]);
+  }, []);
 
   const value = {
     notifications,
     addNotification,
-    removeNotification
+    removeNotification,
+    showNotification,
+    clearAll
   };
 
   return (
@@ -35,3 +56,5 @@ export const NotificationProvider = ({ children }) => {
     </NotificationContext.Provider>
   );
 };
+
+export default NotificationContext;

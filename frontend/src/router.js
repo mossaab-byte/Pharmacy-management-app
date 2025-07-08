@@ -1,29 +1,27 @@
 import React from 'react';
 import { 
-  createBrowserRouter, 
-  createRoutesFromElements, 
-  Route,  
-  RouterProvider,
-  Navigate,
-  Outlet
+  Routes, 
+  Route, 
+  Navigate 
 } from 'react-router-dom';
 
 import Layout from './components/layout/layout';
-import ProtectedRoute from './components/protectedRoute'; // Use your custom ProtectedRoute
+import SimpleProtectedRoute from './components/SimpleProtectedRoute';
 import { DashboardProvider } from './context/DashboardContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
-import Dashboard from './pages/Dashboard/Dashboard';
+import Dashboard from './pages/Dashboard/DashboardStable';
 import CustomerManagementPage from './pages/Customers/customerManagementPage';
 import CustomerDetailPage from './pages/Customers/customerDetailPage';
 import CustomerForm from './components/customers/customerForm';
 import SalesFormPage from './pages/Sales/salesForm';
 import SaleDetailPage from './pages/Sales/salesDetailPage';
-import SalesManagementPage from './pages/Sales/salesManagementPage';
+import SalesManagementPage from './pages/Sales/SalesManagementPageStable';
 import SupplierDetailsPage from './pages/Suppliers/SupplierDetailsPage';
 import SupplierListPage from './pages/Suppliers/SuppliersListPage';
 import PurchaseDetailPage from './pages/Purchases/purchaseDetailsPage';
-import PurchaseManagementPage from './pages/Purchases/purchaseManagementPage';
+import PurchaseManagementPage from './pages/Purchases/PurchaseManagementPageStable';
 import PurchaseForm from './components/purchases/purchaseForm';
 import ExchangeCreate from './pages/Exchanges/ExchangeCreate';
 import ExchangeDashboard from './pages/Exchanges/ExchangeDashboard';
@@ -32,7 +30,7 @@ import ExchangeHistory from './pages/Exchanges/ExchangeHistory';
 import SupplierForm from './pages/Suppliers/SupplierFormPage';
 
 // Auth pages
-import Login from './pages/Auth/login';
+import Login from './pages/Auth/LoginPageNew';
 import RegisterUserPage from './pages/Auth/RegisterUserPage';
 import RegisterPharmacyPage from './pages/Auth/RegisterPharmacyPage';
 
@@ -40,97 +38,94 @@ import RegisterPharmacyPage from './pages/Auth/RegisterPharmacyPage';
 import MedicineTest from './pages/Test/MedicineTest';
 
 // New module pages
-import MedicinesPage from './pages/Medicines/MedicinesPage';
-import InventoryPage from './pages/Inventory/InventoryPage';
-import FinanceDashboard from './pages/Finance/FinanceDashboard';
-import UsersPage from './pages/Users/UsersPage';
-import PharmacySettingsPage from './pages/Pharmacy/PharmacySettingsPage';
-import ReportsPage from './pages/Reports/ReportsPage';
+import MedicinesPage from './pages/Medicines/MedicinesPageStable';
+import InventoryPage from './pages/Inventory/InventoryPageNew';
+import FinanceDashboard from './pages/Finance/FinanceDashboardNew';
+import UsersPage from './pages/Users/UsersPageNew';
+import PharmacySettingsPage from './pages/Pharmacy/PharmacySettingsPageNew';
+import ReportsPage from './pages/Reports/ReportsPageNew';
 
 // Dashboard Layout with Provider
-const DashboardLayout = () => (
+const DashboardLayout = ({ children }) => (
   <DashboardProvider>
     <Layout>
-      <Outlet />
+      {children}
     </Layout>
   </DashboardProvider>
 );
 
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <>
-      {/* Public routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register-user" element={<RegisterUserPage />} />
-      <Route path="/register-pharmacy" element={<RegisterPharmacyPage />} />
-
-      {/* Protected routes with dashboard provider */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          
-          {/* Customers */}
-          <Route path="customers" element={<CustomerManagementPage />} />
-          <Route path="customers/new" element={<CustomerForm />} />
-          <Route path="customers/edit/:id" element={<CustomerForm />} />
-          <Route path="customers/:id" element={<CustomerDetailPage />} />
-
-          {/* Sales */}
-          <Route path="sales" element={<SalesManagementPage />} />
-          <Route path="sales/new" element={<SalesFormPage />} />
-          <Route path="sales/:id" element={<SaleDetailPage />} />
-
-          {/* Suppliers */}
-          <Route path="suppliers" element={<SupplierListPage />} />
-          <Route path="suppliers/new" element={<SupplierForm />} />
-          <Route path="suppliers/:id" element={<SupplierDetailsPage />} />
-
-          {/* Purchases */}
-          <Route path="purchases" element={<PurchaseManagementPage />} />
-          <Route path="purchases/new" element={<PurchaseForm />} />
-          <Route path="purchases/:id" element={<PurchaseDetailPage />} />
-
-          {/* Exchanges */}
-          <Route path="exchanges/create" element={<ExchangeCreate />} />
-          <Route path="exchanges" element={<ExchangeDashboard />} />
-          <Route path="exchanges/balance" element={<BalanceOverview />} />
-          <Route path="exchanges/history/:pharmacy_id" element={<ExchangeHistory />} />
-
-          {/* Medicines */}
-          <Route path="medicines" element={<MedicinesPage />} />
-
-          {/* Inventory */}
-          <Route path="inventory" element={<InventoryPage />} />
-
-          {/* Finance */}
-          <Route path="finance" element={<FinanceDashboard />} />
-
-          {/* Reports */}
-          <Route path="reports" element={<ReportsPage />} />
-
-          {/* Users */}
-          <Route path="users" element={<UsersPage />} />
-
-          {/* Pharmacy Settings */}
-          <Route path="pharmacy" element={<PharmacySettingsPage />} />
-
-          {/* Test pages */}
-          <Route path="test/medicine" element={<MedicineTest />} />
-        </Route>
-      </Route>
-
-      {/* Fallback redirect */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </>
-  ),
-  {
-    future: {
-      v7_startTransition: true,
-      v7_relativeSplatPath: true,
-    },
-  }
+// Protected Route wrapper
+const ProtectedRoute = ({ children }) => (
+  <SimpleProtectedRoute>
+    <DashboardLayout>
+      {children}
+    </DashboardLayout>
+  </SimpleProtectedRoute>
 );
 
 export default function AppRouter() {
-  return <RouterProvider router={router} />;
+  return (
+    <ErrorBoundary>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register-user" element={<RegisterUserPage />} />
+        <Route path="/register-pharmacy" element={<RegisterPharmacyPage />} />
+
+        {/* Protected routes */}
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        
+        {/* Customers */}
+        <Route path="/customers" element={<ProtectedRoute><CustomerManagementPage /></ProtectedRoute>} />
+        <Route path="/customers/new" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
+        <Route path="/customers/edit/:id" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
+        <Route path="/customers/:id" element={<ProtectedRoute><CustomerDetailPage /></ProtectedRoute>} />
+
+        {/* Sales */}
+        <Route path="/sales" element={<ProtectedRoute><SalesManagementPage /></ProtectedRoute>} />
+        <Route path="/sales/new" element={<ProtectedRoute><SalesFormPage /></ProtectedRoute>} />
+        <Route path="/sales/:id" element={<ProtectedRoute><SaleDetailPage /></ProtectedRoute>} />
+
+        {/* Suppliers */}
+        <Route path="/suppliers" element={<ProtectedRoute><SupplierListPage /></ProtectedRoute>} />
+        <Route path="/suppliers/new" element={<ProtectedRoute><SupplierForm /></ProtectedRoute>} />
+        <Route path="/suppliers/:id" element={<ProtectedRoute><SupplierDetailsPage /></ProtectedRoute>} />
+
+        {/* Purchases */}
+        <Route path="/purchases" element={<ProtectedRoute><PurchaseManagementPage /></ProtectedRoute>} />
+        <Route path="/purchases/new" element={<ProtectedRoute><PurchaseForm /></ProtectedRoute>} />
+        <Route path="/purchases/:id" element={<ProtectedRoute><PurchaseDetailPage /></ProtectedRoute>} />
+
+        {/* Exchanges */}
+        <Route path="/exchanges/create" element={<ProtectedRoute><ExchangeCreate /></ProtectedRoute>} />
+        <Route path="/exchanges" element={<ProtectedRoute><ExchangeDashboard /></ProtectedRoute>} />
+        <Route path="/exchanges/balance" element={<ProtectedRoute><BalanceOverview /></ProtectedRoute>} />
+        <Route path="/exchanges/history/:pharmacy_id" element={<ProtectedRoute><ExchangeHistory /></ProtectedRoute>} />
+
+        {/* Medicines */}
+        <Route path="/medicines" element={<ProtectedRoute><MedicinesPage /></ProtectedRoute>} />
+
+        {/* Inventory */}
+        <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
+
+        {/* Finance */}
+        <Route path="/finance" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
+
+        {/* Reports */}
+        <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+
+        {/* Users */}
+        <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
+
+        {/* Pharmacy Settings */}
+        <Route path="/pharmacy" element={<ProtectedRoute><PharmacySettingsPage /></ProtectedRoute>} />
+
+        {/* Test pages */}
+        <Route path="/test/medicine" element={<ProtectedRoute><MedicineTest /></ProtectedRoute>} />
+
+        {/* Fallback redirect */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </ErrorBoundary>
+  );
 }

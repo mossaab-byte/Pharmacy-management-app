@@ -5,15 +5,16 @@ echo ========================================
 echo.
 
 echo Starting backend server...
-cd /d "c:\Users\mohammed\Documents\APPLICATION_PHARMACIE\backend"
-start "Django Server" cmd /k "python manage.py runserver 0.0.0.0:8000"
+echo Activating virtual environment...
+cd /d "c:\Users\mohammed\Documents\APPLICATION_PHARMACIE"
+start "Django Server" cmd /k "call venv\Scripts\activate.bat && cd backend && python manage.py runserver 0.0.0.0:8000"
 
 echo Waiting for backend to start...
 timeout /t 5 /nobreak >nul
 
 echo Starting frontend development server...
 cd /d "c:\Users\mohammed\Documents\APPLICATION_PHARMACIE\frontend"
-start "React Server" cmd /k "npm start"
+start "React Server" cmd /k "npx webpack serve --mode development"
 
 echo.
 echo ========================================

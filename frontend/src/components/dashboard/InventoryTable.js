@@ -1,10 +1,18 @@
 import React from 'react';
 import { Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import ErrorBoundary from '../ErrorBoundary';
 
 const InventoryTable = ({ data }) => {
+  // Ensure data is an array
+  const safeData = Array.isArray(data) ? data : [];
+
   const getStockStatus = (stock, minLevel) => {
-    if (stock <= minLevel) return 'low';
-    if (stock <= minLevel * 1.5) return 'medium';
+    // Ensure values are numbers
+    const safeStock = Number(stock) || 0;
+    const safeMinLevel = Number(minLevel) || 1;
+
+    if (safeStock <= safeMinLevel) return 'low';
+    if (safeStock <= safeMinLevel * 1.5) return 'medium';
     return 'high';
   };
 
@@ -35,10 +43,11 @@ const InventoryTable = ({ data }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-      <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">Inventory Status</h3>
-      </div>
+    <ErrorBoundary>
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Inventory Status</h3>
+        </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -61,23 +70,31 @@ const InventoryTable = ({ data }) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((item, index) => {
-              const status = getStockStatus(item.stock, item.minimum_stock_level);
+            {safeData.map((item, index) => {
+              // Safely access properties with fallbacks
+              const stock = item?.stock || 0;
+              const minStockLevel = item?.minimum_stock_level || 0;
+              const medicineName = item?.name || item?.medicine_name || 'Unknown Medicine';
+              const price = typeof item?.prix_public === 'number' ? item.prix_public : 
+                          typeof item?.price === 'number' ? item.price : 0;
+              
+              const status = getStockStatus(stock, minStockLevel);
+              
               return (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {item.medicine_name}
+                      {medicineName}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{item.stock}</div>
+                    <div className="text-sm text-gray-900">{stock}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{item.minimum_stock_level}</div>
+                    <div className="text-sm text-gray-900">{minStockLevel}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">${item.price.toFixed(2)}</div>
+                    <div className="text-sm text-gray-900">${price.toFixed(2)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
@@ -91,7 +108,8 @@ const InventoryTable = ({ data }) => {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

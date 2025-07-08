@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign, Package, TrendingUp, ShoppingCart, RefreshCw } from 'lucide-react';
 import KpiCard from '../../components/dashboard/KpiCard';
 import RevenueChart from '../../components/dashboard/RevenueChart';
@@ -7,8 +7,8 @@ import InventoryTable from '../../components/dashboard/InventoryTable';
 import SalesChart from '../../components/dashboard/SalesChart';
 import LoadingSpinner from '../../components/UI/LoadingSpinner';
 import ErrorMessage from '../../components/UI/ErrorMessage';
+import ErrorBoundary from '../../components/ErrorBoundary';
 import { useDashboard } from '../../context/DashboardContext';
-import { useAuth } from '../../context/authContext';
 
 const Dashboard = () => {
   const {
@@ -19,7 +19,45 @@ const Dashboard = () => {
     refreshData: handleRefresh
   } = useDashboard();
 
-  const { user } = useAuth();
+  const [user, setUser] = useState(null);
+
+  // Load user from localStorage
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        // Set mock user for development
+        const mockUser = {
+          id: 1,
+          username: 'marouaneTibary',
+          email: 'marouane@pharmacy.com',
+          pharmacy: {
+            id: 1,
+            name: 'PharmaGestion',
+            address: '123 Main St, City'
+          }
+        };
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        setUser(mockUser);
+      }
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      // Set mock user as fallback
+      const mockUser = {
+        id: 1,
+        username: 'marouaneTibary',
+        email: 'marouane@pharmacy.com',
+        pharmacy: {
+          id: 1,
+          name: 'PharmaGestion',
+          address: '123 Main St, City'
+        }
+      };
+      setUser(mockUser);
+    }
+  }, []);
 
   // Check if user has a pharmacy registered
   if (!user?.pharmacy) {
@@ -140,13 +178,21 @@ const Dashboard = () => {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Average Sale</span>
                 <span className="font-semibold">
-                  ${data?.sales?.length ? (data.sales.reduce((sum, sale) => sum + sale.total_amount, 0) / data.sales.length).toFixed(2) : '0'}
+                  ${data?.sales?.length ? (data.sales.reduce((sum, sale) => {
+                    // Safely add total_amount if it exists and is a number
+                    const amount = Number(sale?.total_amount);
+                    return sum + (isNaN(amount) ? 0 : amount);
+                  }, 0) / data.sales.length).toFixed(2) : '0'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Low Stock Items</span>
                 <span className="font-semibold text-red-600">
-                  {data?.inventory?.filter(item => item.stock <= item.minimum_stock_level).length || 0}
+                  {data?.inventory?.filter(item => {
+                    const stock = Number(item?.stock) || 0;
+                    const minLevel = Number(item?.minimum_stock_level) || 0;
+                    return stock <= minLevel;
+                  }).length || 0}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -158,7 +204,11 @@ const Dashboard = () => {
         </div>
 
         {/* Inventory Table */}
-        {data?.inventory && <InventoryTable data={data.inventory} />}
+        {data?.inventory && Array.isArray(data.inventory) && (
+          <ErrorBoundary showDetail={false}>
+            <InventoryTable data={data.inventory} />
+          </ErrorBoundary>
+        )}
       </div>
     </div>
   );

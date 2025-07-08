@@ -1,24 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Select } from '../../components/UI';
 import MedicineSearchWithBarcode from '../common/MedicineSearchWithBarcode';
-import  supplierService  from '../../services/supplierService';
-import  medicineService  from '../../services/medicineService';
-import  purchaseService  from '../../services/purchaseService';
+import supplierService from '../../services/supplierService';
+import medicineService from '../../services/medicineService';
+import purchaseService from '../../services/purchaseService';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../context/NotificationContext';
+import ErrorBoundary from '../ErrorBoundary';
 
 const PurchaseForm = () => {
   const [supplierId, setSupplierId] = useState('');
   const [suppliers, setSuppliers] = useState([]);
   const [items, setItems] = useState([{ medicine: '', quantity: 1 }]);
   const [medicines, setMedicines] = useState([]);
-  const { addNotification } = useNotification();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { showNotification } = useNotification();
   const navigate = useNavigate();
 
   useEffect(() => {
-    supplierService.getAll().then(setSuppliers);
-    medicineService.getAllAvailable().then(setMedicines);
+    loadInitialData();
   }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      const [suppliersData, medicinesData] = await Promise.all([
+        supplierService.getAll(),
+        medicineService.getAll()
+      ]);
+      setSuppliers(suppliersData || []);
+      setMedicines(medicinesData || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Failed to load data. Please try again.');
+      showNotification('Failed to load data. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
@@ -27,7 +47,12 @@ const PurchaseForm = () => {
   };
 
   const addItem = () => setItems([...items, { medicine: '', quantity: 1 }]);
-  const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
+  
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
 
   const handleMedicineSelect = (medicine) => {
     // Check if medicine already exists in items
@@ -46,7 +71,7 @@ const PurchaseForm = () => {
 
   const total = items.reduce((sum, i) => {
     const med = medicines.find(m => m.id === i.medicine);
-    return sum + (med ? med.unit_cost * i.quantity : 0);
+    return sum + (med ? (med.unit_price || med.prix_public || 0) * i.quantity : 0);
   }, 0);
 
   const handleSubmit = async () => {

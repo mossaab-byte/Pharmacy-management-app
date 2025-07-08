@@ -15,7 +15,9 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Step 2: Collecting static files...
-cd /d "c:\Users\mohammed\Documents\APPLICATION_PHARMACIE\backend"
+cd /d "c:\Users\mohammed\Documents\APPLICATION_PHARMACIE"
+call venv\Scripts\activate
+cd backend
 python manage.py collectstatic --noinput
 if %errorlevel% neq 0 (
     echo Static file collection failed!

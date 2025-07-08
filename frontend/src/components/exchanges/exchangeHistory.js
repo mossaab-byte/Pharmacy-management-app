@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { exchangeService } from '../../services/exchangeService';
+import  exchangeService  from '../../services/exchangeService';
 import Card from '../UI/Card';
 import Table from '../UI/Table';
 
