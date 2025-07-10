@@ -3,115 +3,74 @@ import { apiClient } from './apiClient';
 const purchaseService = {
   getAll: async () => {
     try {
-      const response = await apiClient.get('/purchases/');
-      // Ensure we always return a safe array
+      const response = await apiClient.get('/purchases/purchases/');
+      let purchases = [];
       if (Array.isArray(response.data)) {
-        return response.data;
+        purchases = response.data;
       } else if (response.data && Array.isArray(response.data.results)) {
-        return response.data.results;
-      } else {
-        return [];
+        purchases = response.data.results;
       }
+      console.log(`✅ Loaded ${purchases.length} purchases from backend`);
+      return purchases;
     } catch (error) {
-      console.error('Error fetching purchases:', error);
-      // Return safe mock data array on error
-      return [
-        {
-          id: 1,
-          supplier_name: 'MedSupply Co.',
-          date: '2024-01-15',
-          total: 2500.00,
-          status: 'completed',
-          items_count: 5
-        },
-        {
-          id: 2,
-          supplier_name: 'PharmaDistributors',
-          date: '2024-01-10',
-          total: 1800.00,
-          status: 'pending',
-          items_count: 3
-        },
-        {
-          id: 3,
-          supplier_name: 'HealthCorp',
-          date: '2024-01-05',
-          total: 3200.00,
-          status: 'completed',
-          items_count: 8
-        }
-      ];
+      console.error('❌ Error fetching purchases:', error);
+      throw new Error(`Failed to fetch purchases: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   getById: async (id) => {
     try {
-      const response = await apiClient.get(`/purchases/${id}/`);
+      const response = await apiClient.get(`/purchases/purchases/${id}/`);
+      console.log('Purchase loaded successfully:', response.data?.id);
       return response.data;
     } catch (error) {
       console.error('Error fetching purchase:', error);
-      return {
-        id: id,
-        supplier_name: 'MedSupply Co.',
-        date: '2024-01-15',
-        total: 2500.00,
-        status: 'completed',
-        items: [
-          {
-            id: 1,
-            medicine_name: 'Paracetamol 500mg',
-            quantity: 100,
-            unit_price: 15.00,
-            total_price: 1500.00
-          }
-        ]
-      };
+      throw new Error(`Failed to fetch purchase: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   create: async (payload) => {
     try {
-      const response = await apiClient.post('/purchases/', payload);
+      const response = await apiClient.post('/purchases/purchases/', payload);
+      console.log('Purchase created successfully:', response.data?.id);
       return response.data;
     } catch (error) {
       console.error('Error creating purchase:', error);
-      throw error;
+      throw new Error(`Failed to create purchase: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   update: async (id, payload) => {
     try {
-      const response = await apiClient.put(`/purchases/${id}/`, payload);
+      const response = await apiClient.put(`/purchases/purchases/${id}/`, payload);
+      console.log('Purchase updated successfully:', response.data?.id);
       return response.data;
     } catch (error) {
       console.error('Error updating purchase:', error);
-      throw error;
+      throw new Error(`Failed to update purchase: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   remove: async (id) => {
     try {
-      const response = await apiClient.delete(`/purchases/${id}/`);
+      const response = await apiClient.delete(`/purchases/purchases/${id}/`);
+      console.log('Purchase deleted successfully');
       return response.data;
     } catch (error) {
       console.error('Error deleting purchase:', error);
-      throw error;
+      throw new Error(`Failed to delete purchase: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   // Get purchase statistics
   getStats: async () => {
     try {
-      const response = await apiClient.get('/purchases/statistics/');
+      const response = await apiClient.get('/purchases/purchases/statistics/');
+      console.log('Purchase statistics loaded successfully');
       return response.data;
     } catch (error) {
       console.error('Error fetching purchase stats:', error);
-      return {
-        total_purchases: 2,
-        total_amount: 4300.00,
-        avg_purchase_amount: 2150.00,
-        monthly_purchases: 2
-      };
+      throw new Error(`Failed to fetch purchase statistics: ${error.response?.data?.detail || error.message}`);
     }
   }
 };

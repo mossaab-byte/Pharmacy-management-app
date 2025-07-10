@@ -71,7 +71,7 @@ module.exports = {
         target: 'http://localhost:8000',
         changeOrigin: true,
         ws: true,
-        pathRewrite: { '^/api': '' },
+        // Remove pathRewrite to keep /api prefix
       },
     },
   },

@@ -16,11 +16,20 @@ class PharmacySerializer(serializers.ModelSerializer):
 
 
 class PharmacyMedicineSerializer(serializers.ModelSerializer):
-    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    medicine_name = serializers.CharField(source='medicine.nom', read_only=True)
+    medicine_code = serializers.CharField(source='medicine.code', read_only=True)
+    medicine_form = serializers.CharField(source='medicine.forme', read_only=True)
+    medicine_dosage = serializers.CharField(source='medicine.dosage1', read_only=True)
+    pharmacy_name = serializers.CharField(source='pharmacy.name', read_only=True)
 
     class Meta:
         model = PharmacyMedicine
-        fields = ['id', 'medicine_name', 'quantity', 'minimum_stock_level']
+        fields = [
+            'id', 'medicine', 'pharmacy', 'quantity', 'minimum_stock_level',
+            'medicine_name', 'medicine_code', 'medicine_form', 'medicine_dosage',
+            'pharmacy_name', 'price', 'cost_price', 'last_updated', 'units_sold'
+        ]
+        read_only_fields = ['last_updated', 'units_sold']
 
 class StockAdjustmentSerializer(serializers.Serializer):
     amount = serializers.IntegerField(min_value=1)

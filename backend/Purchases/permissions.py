@@ -10,6 +10,10 @@ class CanModifyPurchases(permissions.BasePermission):
         if not user.is_authenticated:
             return False
 
+        # Allow any user with is_pharmacist=True (basic pharmacist access)
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            return True
+
         # Pharmacists (owners) are allowed by default
         if hasattr(user, 'owned_pharmacy'):
             return True
@@ -27,6 +31,10 @@ class CanManageSupplier(permissions.BasePermission):
         user = request.user
         if not user.is_authenticated:
             return False
+
+        # Allow any user with is_pharmacist=True (basic pharmacist access)
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            return True
 
         # Pharmacists (owners) are allowed by default
         if hasattr(user, 'owned_pharmacy'):
@@ -51,6 +59,10 @@ class CanDeletePurchases(permissions.BasePermission):
         user = request.user
         if not user.is_authenticated:
             return False
+
+        # Allow any user with is_pharmacist=True (basic pharmacist access)
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            return True
 
         if hasattr(user, 'owned_pharmacy'):
             return True

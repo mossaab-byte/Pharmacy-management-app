@@ -14,8 +14,16 @@ class SalesViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if hasattr(user, 'pharmacy'):
-            return Sale.objects.filter(pharmacy=user.pharmacy).order_by('-created_at')
+        
+        # For basic pharmacists without a specific pharmacy, return all sales
+        # (in a production environment, you might want to create a default pharmacy)
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            if hasattr(user, 'pharmacy') and user.pharmacy:
+                return Sale.objects.filter(pharmacy=user.pharmacy).order_by('-created_at')
+            else:
+                # Basic pharmacist - return all sales for now
+                return Sale.objects.all().order_by('-created_at')
+        
         return Sale.objects.none()
 
     def get_serializer_class(self):
@@ -25,9 +33,11 @@ class SalesViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Automatically set served_by to current user
+        # For basic pharmacists without a pharmacy, set pharmacy to None or create a default one
+        user_pharmacy = getattr(self.request.user, 'pharmacy', None)
         serializer.save(
             served_by=self.request.user,
-            pharmacy=self.request.user.pharmacy
+            pharmacy=user_pharmacy
         )
 
 class PharmacySalesListAPIView(generics.ListAPIView):
@@ -61,6 +71,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
+        
+        # For basic pharmacists, allow access to all customers
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            return Customer.objects.all().select_related('user')
+        
         if hasattr(user, 'pharmacy'):
             # Return all customers - they're not directly linked to pharmacy
             return Customer.objects.all().select_related('user')

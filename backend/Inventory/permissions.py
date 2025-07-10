@@ -14,12 +14,18 @@ class CanManageInventoryLogs(BasePermission):
         if user.is_superuser:
             return True
 
-        # Adjust these checks based on your user model fields and roles
-        is_pharmacist = getattr(user, 'is_pharmacist', False)
-        is_manager = getattr(user, 'is_manager', False)
-        can_manage = getattr(user, 'can_manage_inventory', False)
-
-        if (is_pharmacist or is_manager) and can_manage:
+        # Pharmacist has all permissions
+        if getattr(user, 'is_pharmacist', False):
             return True
+
+        # Check manager permissions
+        if getattr(user, 'is_manager', False) and hasattr(user, 'pharmacy'):
+            from Pharmacy.models import Manager
+            manager_perms = Manager.objects.filter(
+                user=user,
+                pharmacy=user.pharmacy,
+                can_manage_inventory=True
+            ).exists()
+            return manager_perms
 
         return False

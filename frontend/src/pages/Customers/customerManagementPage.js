@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import customerService from '../../services/customerService';
 
 import CustomerTable from '../../components/customers/customerTable';
-import { LoadingSpinner, Button,ErrorMessage } from '../../components/UI';
+import { LoadingSpinner, Button, ErrorMessage } from '../../components/UI';
 import { useNavigate } from 'react-router-dom';
 
 const CustomerManagementPage = () => {

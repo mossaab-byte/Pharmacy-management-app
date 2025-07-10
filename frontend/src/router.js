@@ -16,6 +16,7 @@ import CustomerManagementPage from './pages/Customers/customerManagementPage';
 import CustomerDetailPage from './pages/Customers/customerDetailPage';
 import CustomerForm from './components/customers/customerForm';
 import SalesFormPage from './pages/Sales/salesForm';
+import SimpleStableSalesForm from './components/sales/SimpleStableSalesForm';
 import SaleDetailPage from './pages/Sales/salesDetailPage';
 import SalesManagementPage from './pages/Sales/SalesManagementPageStable';
 import SupplierDetailsPage from './pages/Suppliers/SupplierDetailsPage';
@@ -23,6 +24,8 @@ import SupplierListPage from './pages/Suppliers/SuppliersListPage';
 import PurchaseDetailPage from './pages/Purchases/purchaseDetailsPage';
 import PurchaseManagementPage from './pages/Purchases/PurchaseManagementPageStable';
 import PurchaseForm from './components/purchases/purchaseForm';
+import ComprehensivePurchaseForm from './components/purchases/ComprehensivePurchaseForm';
+import ComprehensiveExchangeForm from './components/exchanges/ComprehensiveExchangeForm';
 import ExchangeCreate from './pages/Exchanges/ExchangeCreate';
 import ExchangeDashboard from './pages/Exchanges/ExchangeDashboard';
 import BalanceOverview from './pages/Exchanges/BalanceOverview';
@@ -36,6 +39,14 @@ import RegisterPharmacyPage from './pages/Auth/RegisterPharmacyPage';
 
 // Test pages
 import MedicineTest from './pages/Test/MedicineTest';
+import ProductionReadinessTest from './components/common/ProductionReadinessTest';
+import DatabaseConnectivityTest from './components/common/DatabaseConnectivityTest';
+import ComprehensiveSystemTest from './components/common/ComprehensiveSystemTest';
+import BackendConnectionTest from './components/debug/BackendConnectionTest';
+import TroubleshootingPage from './components/debug/TroubleshootingPage';
+import DiagnosticSalesForm from './components/debug/DiagnosticSalesForm';
+import APITestPage from './components/debug/APITestPage';
+import MedicineSearchTest from './components/debug/MedicineSearchTest';
 
 // New module pages
 import MedicinesPage from './pages/Medicines/MedicinesPageStable';
@@ -84,6 +95,7 @@ export default function AppRouter() {
         {/* Sales */}
         <Route path="/sales" element={<ProtectedRoute><SalesManagementPage /></ProtectedRoute>} />
         <Route path="/sales/new" element={<ProtectedRoute><SalesFormPage /></ProtectedRoute>} />
+        <Route path="/sales/stable" element={<ProtectedRoute><div className="page p-6"><SimpleStableSalesForm /></div></ProtectedRoute>} />
         <Route path="/sales/:id" element={<ProtectedRoute><SaleDetailPage /></ProtectedRoute>} />
 
         {/* Suppliers */}
@@ -93,11 +105,11 @@ export default function AppRouter() {
 
         {/* Purchases */}
         <Route path="/purchases" element={<ProtectedRoute><PurchaseManagementPage /></ProtectedRoute>} />
-        <Route path="/purchases/new" element={<ProtectedRoute><PurchaseForm /></ProtectedRoute>} />
+        <Route path="/purchases/new" element={<ProtectedRoute><ComprehensivePurchaseForm /></ProtectedRoute>} />
         <Route path="/purchases/:id" element={<ProtectedRoute><PurchaseDetailPage /></ProtectedRoute>} />
 
         {/* Exchanges */}
-        <Route path="/exchanges/create" element={<ProtectedRoute><ExchangeCreate /></ProtectedRoute>} />
+        <Route path="/exchanges/create" element={<ProtectedRoute><ComprehensiveExchangeForm /></ProtectedRoute>} />
         <Route path="/exchanges" element={<ProtectedRoute><ExchangeDashboard /></ProtectedRoute>} />
         <Route path="/exchanges/balance" element={<ProtectedRoute><BalanceOverview /></ProtectedRoute>} />
         <Route path="/exchanges/history/:pharmacy_id" element={<ProtectedRoute><ExchangeHistory /></ProtectedRoute>} />
@@ -122,6 +134,14 @@ export default function AppRouter() {
 
         {/* Test pages */}
         <Route path="/test/medicine" element={<ProtectedRoute><MedicineTest /></ProtectedRoute>} />
+        <Route path="/test/medicine-search" element={<ProtectedRoute><MedicineSearchTest /></ProtectedRoute>} />
+        <Route path="/test/production" element={<ProtectedRoute><ProductionReadinessTest /></ProtectedRoute>} />
+        <Route path="/test/database" element={<ProtectedRoute><DatabaseConnectivityTest /></ProtectedRoute>} />
+        <Route path="/test/comprehensive" element={<ProtectedRoute><ComprehensiveSystemTest /></ProtectedRoute>} />
+        <Route path="/test/backend" element={<ProtectedRoute><BackendConnectionTest /></ProtectedRoute>} />
+        <Route path="/test/api" element={<ProtectedRoute><APITestPage /></ProtectedRoute>} />
+        <Route path="/troubleshoot" element={<ProtectedRoute><TroubleshootingPage /></ProtectedRoute>} />
+        <Route path="/diagnose" element={<ProtectedRoute><DiagnosticSalesForm /></ProtectedRoute>} />
 
         {/* Fallback redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />

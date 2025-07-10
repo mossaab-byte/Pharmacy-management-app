@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import  exchangeService  from '../../services/exchangeService';
 import  pharmacyService  from '../../services/pharmacyService';
-import  medicineService  from '../../services/medicineService';
+import medicineService from '../../services/medicineService';
 import { useNotification } from '../../contexts/NotificationContext';
 import MedicineSearchWithBarcode from '../common/MedicineSearchWithBarcode';
 import Button from '../UI/Button';
@@ -18,7 +18,9 @@ const ExchangeForm = ({ onSubmitSuccess }) => {
 
   useEffect(() => {
     pharmacyService.getAll().then(setPharmacies);
-    medicineService.getAll().then(setMedicines);
+    medicineService.getAll().then(response => {
+      setMedicines(response.data?.results || response || []);
+    });
   }, []);
 
   const handleAddItem = () => setItems([...items, { medicine: '', quantity: 1 }]);

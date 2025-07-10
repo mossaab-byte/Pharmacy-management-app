@@ -83,6 +83,28 @@ class MedicineViewSet(viewsets.ReadOnlyModelViewSet):
         }
         return Response(stats)
 
+    @action(detail=False, methods=['get'])
+    def search_all(self, request):
+        """Return all medicines for frontend search (no pagination)"""
+        # Get all medicines with basic info for frontend search
+        medicines = Medicine.objects.all().order_by('nom')
+        
+        # Apply search filter if provided
+        search = request.query_params.get('search', '').strip()
+        if search:
+            medicines = medicines.filter(
+                Q(nom__icontains=search) | 
+                Q(code__icontains=search) |
+                Q(dci1__icontains=search)
+            )
+        
+        # Limit to prevent huge responses but allow enough for search
+        limit = int(request.query_params.get('limit', 1000))
+        medicines = medicines[:limit]
+        
+        serializer = self.get_serializer(medicines, many=True)
+        return Response(serializer.data)
+
 # Keep the old view for backward compatibility
 class MedicineListView(viewsets.ReadOnlyModelViewSet):
     queryset = Medicine.objects.all().order_by('nom')

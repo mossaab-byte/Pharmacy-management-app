@@ -164,15 +164,15 @@ class Command(BaseCommand):
             {
                 'name': 'Global Pharma Supplies',
                 'contact_person': 'John Smith',
-                'phone': '+1-555-0101',
-                'email': 'john.smith@globalpha rma.com',
+                'contact_phone': '+1-555-0101',
+                'contact_email': 'john.smith@globalpharma.com',
                 'address': '456 Industrial Ave, Supply City'
             },
             {
                 'name': 'MediCorp Distribution',
                 'contact_person': 'Sarah Johnson',
-                'phone': '+1-555-0102',
-                'email': 'sarah.johnson@medicorp.com',
+                'contact_phone': '+1-555-0102',
+                'contact_email': 'sarah.johnson@medicorp.com',
                 'address': '789 Warehouse Blvd, Distribution Hub'
             }
         ]

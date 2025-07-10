@@ -1,11 +1,11 @@
 # pharmacy/views.py
-from rest_framework import viewsets, status
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
+from rest_framework.exceptions import ValidationError
 from .models import Manager
 from .serializers import ManagerSerializer
 from datetime import timedelta, date
@@ -23,27 +23,85 @@ User = get_user_model()
 class PharmacyViewSet(viewsets.ModelViewSet):
     queryset = Pharmacy.objects.all()
     serializer_class = PharmacySerializer
-    permission_classes = [IsAuthenticated,  CannotDeletePharmacy]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_admin:
+        if user.is_superuser:
+            # Superuser can see all pharmacies
             return Pharmacy.objects.all()
-        return Pharmacy.objects.filter(pharmacist=user)
+        elif user.is_pharmacist and hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+            # Pharmacist can only see their own pharmacy
+            return Pharmacy.objects.filter(id=user.owned_pharmacy.id)
+        elif user.pharmacy:
+            # User belongs to a pharmacy
+            return Pharmacy.objects.filter(id=user.pharmacy.id)
+        else:
+            # No pharmacy access
+            return Pharmacy.objects.none()
 
     def perform_create(self, serializer):
+        # Only allow one pharmacy per pharmacist (unless superuser)
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'owned_pharmacy') and self.request.user.owned_pharmacy:
+                raise ValidationError("You already own a pharmacy")
         serializer.save(pharmacist=self.request.user)
 
 
 class PharmacyMedicineViewSet(viewsets.ModelViewSet):
     serializer_class = PharmacyMedicineSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        if user.is_superuser:
+            # Superuser can see all pharmacy medicines
+            return PharmacyMedicine.objects.select_related('pharmacy', 'medicine').all()
+        elif user.is_pharmacist:
+            # Pharmacist can see medicines from their pharmacy
+            if hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+                return PharmacyMedicine.objects.filter(pharmacy=user.owned_pharmacy).select_related('pharmacy', 'medicine')
+            elif user.pharmacy:
+                return PharmacyMedicine.objects.filter(pharmacy=user.pharmacy).select_related('pharmacy', 'medicine')
+        elif user.is_manager and user.pharmacy:
+            # Manager can see medicines from their pharmacy
+            return PharmacyMedicine.objects.filter(pharmacy=user.pharmacy).select_related('pharmacy', 'medicine')
+        
+        # Default: no access
+        return PharmacyMedicine.objects.none()
+
+    def perform_create(self, serializer):
+        # Assign to user's pharmacy
+        user = self.request.user
+        pharmacy = None
+        
+        if user.is_superuser:
+            # Superuser can specify pharmacy or use default
+            pharmacy = serializer.validated_data.get('pharmacy')
+            if not pharmacy:
+                pharmacy = user.pharmacy or Pharmacy.objects.first()
+        elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+            pharmacy = user.owned_pharmacy
+        elif user.pharmacy:
+            pharmacy = user.pharmacy
+        
+        if not pharmacy:
+            raise ValidationError("No pharmacy assigned to user")
+            
+        serializer.save(pharmacy=pharmacy)
+    serializer_class = PharmacyMedicineSerializer
     permission_classes = [IsAuthenticated, CanManageInventory]
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_admin:
+        if user.is_pharmacist or user.is_superuser:
             return PharmacyMedicine.objects.select_related('pharmacy', 'medicine')
-        return PharmacyMedicine.objects.filter(pharmacy=user.pharmacy)
+        # If user has a pharmacy, filter by that pharmacy
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            return PharmacyMedicine.objects.filter(pharmacy=user.pharmacy)
+        # Otherwise return empty queryset
+        return PharmacyMedicine.objects.none()
 
     @action(detail=True, methods=['post'], serializer_class=StockAdjustmentSerializer)
     def add_stock(self, request, pk=None):
@@ -87,13 +145,24 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
                 med_id = serializer.validated_data['medicine_id']
                 qty = serializer.validated_data['quantity']
                 reason = serializer.validated_data['reason']
-                pm, _ = PharmacyMedicine.objects.get_or_create(
-                    pharmacy=request.user.pharmacy,
-                    medicine_id=med_id,
-                    defaults={'quantity': 0}
-                )
-                pm.add_stock(qty, request.user, reason)
-                added.append(med_id)
+                # Get or create PharmacyMedicine for the user's pharmacy or first available pharmacy
+                user_pharmacy = None
+                if hasattr(request.user, 'pharmacy') and request.user.pharmacy:
+                    user_pharmacy = request.user.pharmacy
+                else:
+                    # Get first available pharmacy as fallback
+                    user_pharmacy = Pharmacy.objects.first()
+                
+                if user_pharmacy:
+                    pm, _ = PharmacyMedicine.objects.get_or_create(
+                        pharmacy=user_pharmacy,
+                        medicine_id=med_id,
+                        defaults={'quantity': 0}
+                    )
+                    pm.add_stock(qty, request.user, reason)
+                    added.append(med_id)
+                else:
+                    errors.append({"errors": {"pharmacy": "No pharmacy available"}, "entry": entry})
             else:
                 errors.append({"errors": serializer.errors, "entry": entry})
 
@@ -106,10 +175,15 @@ class ManagerViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
-        # Pharmacists can only see permissions for their own pharmacy
-        return Manager.objects.filter(
-            pharmacy=self.request.user.pharmacist.pharmacy
-        )
+        user = self.request.user
+        # For superusers and pharmacists, show all managers
+        if user.is_superuser or user.is_pharmacist:
+            return Manager.objects.all()
+        # For regular users, check if they have a pharmacy
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            return Manager.objects.filter(pharmacy=user.pharmacy)
+        # Otherwise return empty queryset
+        return Manager.objects.none()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -141,8 +215,21 @@ class ManagerViewSet(viewsets.ModelViewSet):
 def sales_stats(request):
     today = date.today()
     stats = []
+    user = request.user
+    
+    # Get the pharmacy to filter by
+    pharmacy = None
+    if hasattr(user, 'pharmacy') and user.pharmacy:
+        pharmacy = user.pharmacy
+    else:
+        # If no pharmacy, get first available pharmacy or return empty stats
+        pharmacy = Pharmacy.objects.first()
+    
+    if not pharmacy:
+        return Response([])
+    
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
-        total = Sale.objects.filter(pharmacy=request.user.pharmacy, created_at__date=day).aggregate(total=Sum('total_amount'))['total'] or 0
+        total = Sale.objects.filter(pharmacy=pharmacy, created_at__date=day).aggregate(total=Sum('total_amount'))['total'] or 0
         stats.append({"date": day.strftime("%Y-%m-%d"), "total": total})
     return Response(stats)

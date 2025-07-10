@@ -6,4 +6,5 @@ export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as Modal } from './Modal';
 export { default as Table } from './Table';
 export { default as Select } from './Select'; 
-export { default as Checkbox} from './Checkbox'; // <--- add this line
+export { default as Checkbox} from './Checkbox';
+export { default as Textarea } from './Textarea';

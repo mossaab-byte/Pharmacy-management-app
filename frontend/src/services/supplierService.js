@@ -3,125 +3,108 @@ import { apiClient } from './apiClient';
 const supplierService = {
   getAll: async () => {
     try {
-      const response = await apiClient.get('/suppliers/');
-      return response.data;
+      const response = await apiClient.get('/purchases/suppliers/');
+      // Handle paginated response
+      let suppliers = [];
+      if (Array.isArray(response.data)) {
+        suppliers = response.data;
+      } else if (response.data && Array.isArray(response.data.results)) {
+        suppliers = response.data.results;
+      }
+      console.log('Suppliers loaded successfully:', suppliers.length, 'suppliers');
+      return suppliers;
     } catch (error) {
       console.error('Error fetching suppliers:', error);
-      // Return mock data on error
-      return [
-        {
-          id: 1,
-          name: 'MedSupply Co.',
-          email: 'contact@medsupply.com',
-          phone: '+1-555-0123',
-          address: '123 Medical St, Healthcare City',
-          contact_person: 'John Smith'
-        },
-        {
-          id: 2,
-          name: 'PharmaDistributors',
-          email: 'info@pharmadist.com',
-          phone: '+1-555-0456',
-          address: '456 Pharma Ave, Medicine Town',
-          contact_person: 'Jane Doe'
-        },
-        {
-          id: 3,
-          name: 'HealthCorp Supplies',
-          email: 'sales@healthcorp.com',
-          phone: '+1-555-0789',
-          address: '789 Health Blvd, Wellness City',
-          contact_person: 'Mike Johnson'
-        }
-      ];
+      throw new Error(`Failed to fetch suppliers: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   getById: async (id) => {
     try {
-      const response = await apiClient.get(`/suppliers/${id}/`);
+      const response = await apiClient.get(`/purchases/suppliers/${id}/`);
+      console.log('Supplier loaded successfully:', response.data?.name);
       return response.data;
     } catch (error) {
       console.error('Error fetching supplier:', error);
-      return {
-        id: id,
-        name: 'MedSupply Co.',
-        email: 'contact@medsupply.com',
-        phone: '+1-555-0123',
-        address: '123 Medical St, Healthcare City',
-        contact_person: 'John Smith'
-      };
+      throw new Error(`Failed to fetch supplier: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   create: async (payload) => {
     try {
-      const response = await apiClient.post('/suppliers/', payload);
+      const response = await apiClient.post('/purchases/suppliers/', payload);
+      console.log('Supplier created successfully:', response.data?.name);
       return response.data;
     } catch (error) {
       console.error('Error creating supplier:', error);
-      throw error;
+      throw new Error(`Failed to create supplier: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   update: async (id, payload) => {
     try {
-      const response = await apiClient.put(`/suppliers/${id}/`, payload);
+      const response = await apiClient.put(`/purchases/suppliers/${id}/`, payload);
+      console.log('Supplier updated successfully:', response.data?.name);
       return response.data;
     } catch (error) {
       console.error('Error updating supplier:', error);
-      throw error;
+      throw new Error(`Failed to update supplier: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   remove: async (id) => {
     try {
-      const response = await apiClient.delete(`/suppliers/${id}/`);
+      const response = await apiClient.delete(`/purchases/suppliers/${id}/`);
+      console.log('Supplier deleted successfully');
       return response.data;
     } catch (error) {
       console.error('Error deleting supplier:', error);
-      throw error;
+      throw new Error(`Failed to delete supplier: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   // Extra endpoints
   getSupplierTransactions: async (id) => {
     try {
-      const response = await apiClient.get(`/suppliers/${id}/transactions/`);
+      const response = await apiClient.get(`/purchases/suppliers/${id}/transactions/`);
+      console.log('Supplier transactions loaded successfully:', response.data?.length || 0, 'transactions');
       return response.data;
     } catch (error) {
       console.error('Error fetching supplier transactions:', error);
-      return [];
+      throw new Error(`Failed to fetch supplier transactions: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   getPurchaseHistory: async (id) => {
     try {
-      const response = await apiClient.get(`/suppliers/${id}/purchases/`);
+      const response = await apiClient.get(`/purchases/suppliers/${id}/purchases/`);
+      console.log('Purchase history loaded successfully:', response.data?.length || 0, 'purchases');
       return response.data;
     } catch (error) {
       console.error('Error fetching purchase history:', error);
-      return [];
+      throw new Error(`Failed to fetch purchase history: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   getSupplierProducts: async (id) => {
     try {
-      const response = await apiClient.get(`/suppliers/${id}/products/`);
+      const response = await apiClient.get(`/purchases/suppliers/${id}/products/`);
+      console.log('Supplier products loaded successfully:', response.data?.length || 0, 'products');
       return response.data;
     } catch (error) {
       console.error('Error fetching supplier products:', error);
-      return [];
+      throw new Error(`Failed to fetch supplier products: ${error.response?.data?.detail || error.message}`);
     }
   },
 
   recordPayment: async (id, payload) => {
     try {
-      const response = await apiClient.post(`/suppliers/${id}/payments/`, payload);
+      const response = await apiClient.post(`/purchases/suppliers/${id}/payments/`, payload);
+      console.log('Payment recorded successfully');
       return response.data;
     } catch (error) {
       console.error('Error recording payment:', error);
-      throw error;
+      throw new Error(`Failed to record payment: ${error.response?.data?.detail || error.message}`);
     }
   }
 };

@@ -13,6 +13,10 @@ class IsPharmacistOrManager(permissions.BasePermission):
         if not user or not user.is_authenticated:
             return False
 
+        # Allow any user with is_pharmacist=True (basic pharmacist access)
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            return True
+
         # Pharmacist owns the pharmacy
         if hasattr(user, 'pharmacy') and user.pharmacy and hasattr(user.pharmacy, 'pharmacist') and user.pharmacy.pharmacist == user:
             return True
@@ -37,6 +41,10 @@ class CanModifySales(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
+
+        # Allow any user with is_pharmacist=True (basic pharmacist access)
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            return True
 
         # Pharmacist can always modify
         if hasattr(user, 'pharmacy') and user.pharmacy and hasattr(user.pharmacy, 'pharmacist') and user.pharmacy.pharmacist == user:
@@ -66,6 +74,10 @@ class CanDeleteSales(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
+
+        # Allow any user with is_pharmacist=True (basic pharmacist access)
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            return True
 
         # Pharmacist can always delete
         if hasattr(user, 'pharmacy') and user.pharmacy and hasattr(user.pharmacy, 'pharmacist') and user.pharmacy.pharmacist == user:

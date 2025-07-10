@@ -32,14 +32,14 @@ const CustomerTable = ({ customers, onView, onEdit, onDelete }) => {
               </td>
               <td
                 className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                  (customer.balance || 0) > 0
+                  (parseFloat(customer.balance) || 0) > 0
                     ? 'text-green-600'
-                    : (customer.balance || 0) < 0
+                    : (parseFloat(customer.balance) || 0) < 0
                     ? 'text-red-600'
                     : 'text-gray-500'
                 }`}
               >
-                {(customer.balance || 0).toFixed(2)}
+                {(parseFloat(customer.balance) || 0).toFixed(2)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                 <Button size="sm" onClick={() => onView(customer.id)}>

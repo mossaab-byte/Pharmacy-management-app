@@ -48,6 +48,15 @@ class PurchaseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        
+        # For basic pharmacists, allow access to all purchases
+        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
+            if hasattr(user, 'pharmacy') and user.pharmacy:
+                return Purchase.objects.filter(pharmacy=user.pharmacy)
+            else:
+                # Basic pharmacist - return all purchases for now
+                return Purchase.objects.all()
+        
         if hasattr(user, 'pharmacy'):
             return Purchase.objects.filter(pharmacy=user.pharmacy)
         return Purchase.objects.none()
