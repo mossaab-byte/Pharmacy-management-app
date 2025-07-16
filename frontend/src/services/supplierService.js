@@ -52,7 +52,19 @@ const supplierService = {
     }
   },
 
-  remove: async (id) => {
+  recordPayment: async (id, payload) => {
+    try {
+      const response = await apiClient.post(`/purchases/suppliers/${id}/payments/`, payload);
+      console.log('Payment recorded successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      throw new Error(`Failed to record payment: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
+  // Alias pour delete (compatibilité avec notre composant)
+  delete: async (id) => {
     try {
       const response = await apiClient.delete(`/purchases/suppliers/${id}/`);
       console.log('Supplier deleted successfully');
@@ -63,48 +75,15 @@ const supplierService = {
     }
   },
 
-  // Extra endpoints
-  getSupplierTransactions: async (id) => {
+  // Méthode pour ajuster le solde du fournisseur
+  adjustBalance: async (id, payload) => {
     try {
-      const response = await apiClient.get(`/purchases/suppliers/${id}/transactions/`);
-      console.log('Supplier transactions loaded successfully:', response.data?.length || 0, 'transactions');
+      const response = await apiClient.post(`/purchases/suppliers/${id}/adjust-balance/`, payload);
+      console.log('Supplier balance adjusted successfully');
       return response.data;
     } catch (error) {
-      console.error('Error fetching supplier transactions:', error);
-      throw new Error(`Failed to fetch supplier transactions: ${error.response?.data?.detail || error.message}`);
-    }
-  },
-
-  getPurchaseHistory: async (id) => {
-    try {
-      const response = await apiClient.get(`/purchases/suppliers/${id}/purchases/`);
-      console.log('Purchase history loaded successfully:', response.data?.length || 0, 'purchases');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching purchase history:', error);
-      throw new Error(`Failed to fetch purchase history: ${error.response?.data?.detail || error.message}`);
-    }
-  },
-
-  getSupplierProducts: async (id) => {
-    try {
-      const response = await apiClient.get(`/purchases/suppliers/${id}/products/`);
-      console.log('Supplier products loaded successfully:', response.data?.length || 0, 'products');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching supplier products:', error);
-      throw new Error(`Failed to fetch supplier products: ${error.response?.data?.detail || error.message}`);
-    }
-  },
-
-  recordPayment: async (id, payload) => {
-    try {
-      const response = await apiClient.post(`/purchases/suppliers/${id}/payments/`, payload);
-      console.log('Payment recorded successfully');
-      return response.data;
-    } catch (error) {
-      console.error('Error recording payment:', error);
-      throw new Error(`Failed to record payment: ${error.response?.data?.detail || error.message}`);
+      console.error('Error adjusting supplier balance:', error);
+      throw new Error(`Failed to adjust supplier balance: ${error.response?.data?.detail || error.message}`);
     }
   }
 };

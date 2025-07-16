@@ -62,7 +62,7 @@ const SalesChart = ({ data }) => {
             cornerRadius: 8,
             displayColors: false,
             callbacks: {
-              label: (context) => `Sales: $${context.parsed.y.toLocaleString()}`,
+              label: (context) => `Ventes: ${context.parsed.y.toLocaleString()} DH`,
             },
           },
         },
@@ -82,7 +82,7 @@ const SalesChart = ({ data }) => {
             },
             ticks: {
               color: '#6b7280',
-              callback: (value) => `$${value.toLocaleString()}`,
+              callback: (value) => `${value.toLocaleString()} DH`,
             },
           },
         },

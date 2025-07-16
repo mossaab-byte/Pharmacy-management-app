@@ -46,8 +46,8 @@ const Sidebar = () => {
   return (
     <aside className="w-64 bg-gray-800 text-white min-h-screen flex flex-col">
       <div className="p-6 border-b border-gray-700">
-        <h1 className="text-xl font-bold text-white">PharmaCare</h1>
-        <p className="text-sm text-gray-300">Management System</p>
+        <h1 className="text-xl font-bold text-white">Mophar</h1>
+        <p className="text-sm text-gray-300">Système de Gestion</p>
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-1">

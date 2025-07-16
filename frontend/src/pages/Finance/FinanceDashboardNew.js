@@ -35,7 +35,7 @@ const FinanceDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">$0.00</p>
+                <p className="text-2xl font-bold text-gray-900">0.00 DH</p>
               </div>
             </div>
           </Card>
@@ -59,7 +59,7 @@ const FinanceDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Expenses</p>
-                <p className="text-2xl font-bold text-gray-900">$0.00</p>
+                <p className="text-2xl font-bold text-gray-900">0.00 DH</p>
               </div>
             </div>
           </Card>

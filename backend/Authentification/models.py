@@ -11,6 +11,13 @@ class PharmacyUser(AbstractUser, PermissionsMixin):
     is_manager = models.BooleanField(default=False)
     is_customer = models.BooleanField(default=False)
     created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Permissions pour la gestion
+    can_manage_inventory = models.BooleanField(default=False)
+    can_manage_sales = models.BooleanField(default=True)
+    can_manage_purchases = models.BooleanField(default=False)
+    can_manage_users = models.BooleanField(default=False)
+    can_view_reports = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.username} ({self.get_user_type()})"
@@ -23,4 +30,21 @@ class PharmacyUser(AbstractUser, PermissionsMixin):
         elif self.is_customer:
             return "Customer"
         return "User"
+    
+    def save(self, *args, **kwargs):
+        # Auto-assign permissions based on user type
+        if self.is_pharmacist:
+            self.can_manage_inventory = True
+            self.can_manage_sales = True
+            self.can_manage_purchases = True
+            self.can_manage_users = True
+            self.can_view_reports = True
+        elif self.is_manager:
+            # Manager permissions can be customized
+            if not hasattr(self, '_permissions_set_manually'):
+                self.can_manage_inventory = True
+                self.can_manage_sales = True
+                self.can_view_reports = True
+        
+        super().save(*args, **kwargs)
 

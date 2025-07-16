@@ -2,7 +2,7 @@ import React from 'react';
 import Table from '../UI/Table';
 
 const SupplierTransactionsTable = ({ transactions }) => {
-  const formatCurrency = (amount) => `$${(amount || 0).toFixed(2)}`;
+  const formatCurrency = (amount) => `${(amount || 0).toFixed(2)} DH`;
   const formatDate = (date) => new Date(date).toLocaleDateString();
 
   const columns = [

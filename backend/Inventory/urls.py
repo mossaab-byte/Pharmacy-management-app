@@ -7,4 +7,5 @@ router.register(r'logs', InventoryLogViewSet, basename='inventory-logs')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('', include('Inventory.stock_urls')),
 ]

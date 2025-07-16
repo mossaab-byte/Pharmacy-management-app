@@ -81,8 +81,8 @@ const PurchaseManagementPageStable = () => {
   });
 
   const formatCurrency = (amount) => {
-    if (typeof amount !== 'number' || isNaN(amount)) return '$0.00';
-    return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+    if (typeof amount !== 'number' || isNaN(amount)) return '0.00 DH';
+    return `${amount.toFixed(2)} DH`;
   };
 
   const formatDate = (dateString) => {

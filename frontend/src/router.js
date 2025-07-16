@@ -49,7 +49,7 @@ import APITestPage from './components/debug/APITestPage';
 import MedicineSearchTest from './components/debug/MedicineSearchTest';
 
 // New module pages
-import MedicinesPage from './pages/Medicines/MedicinesPageStable';
+import MedicinesPage from './pages/Medicines/MedicinesPageQuickFix';
 import InventoryPage from './pages/Inventory/InventoryPageNew';
 import FinanceDashboard from './pages/Finance/FinanceDashboardNew';
 import UsersPage from './pages/Users/UsersPageNew';

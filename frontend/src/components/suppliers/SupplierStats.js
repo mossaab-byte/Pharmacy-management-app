@@ -2,7 +2,7 @@ import React from 'react';
 import Card from '../UI/Card';
 
 const SupplierStats = ({ supplier = {} }) => {
-  const formatCurrency = (amount) => `$${(amount ?? 0).toFixed(2)}`;
+  const formatCurrency = (amount) => `${(amount ?? 0).toFixed(2)} DH`;
 
   return (
     <div className="supplier-stats grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

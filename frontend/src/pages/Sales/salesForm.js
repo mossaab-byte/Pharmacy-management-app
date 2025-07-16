@@ -1,8 +1,8 @@
 import React from 'react';
-import SimpleStableSalesForm from '../../components/sales/SimpleStableSalesForm';
+import WorkingSalesForm from '../../components/sales/WorkingSalesForm';
 
 export default () => (
   <div className="page p-6">
-    <SimpleStableSalesForm />
+    <WorkingSalesForm />
   </div>
 );

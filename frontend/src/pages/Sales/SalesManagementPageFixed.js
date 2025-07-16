@@ -37,8 +37,8 @@ const SalesTable = ({ sales = [], onView, onDelete, deletingId }) => {
             </td>
             <td className="p-3 border border-gray-200">
               {sale.total_amount ? 
-                sale.total_amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' }) : 
-                '$0.00'
+                `${sale.total_amount.toFixed(2)} DH` : 
+                '0.00 DH'
               }
             </td>
             <td className="p-3 border border-gray-200 capitalize">

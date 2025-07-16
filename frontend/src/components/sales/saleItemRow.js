@@ -15,7 +15,7 @@ const SaleItemRow = ({ index, item, medicines, onChange, onRemove }) => {
         <option value="">Select Medicine</option>
         {medicines.map(m => (
           <option key={m.id} value={m.id}>
-            {m.name} - ${m.unit_price.toFixed(2)}
+            {m.name} - {m.unit_price.toFixed(2)} DH
           </option>
         ))}
       </Select>

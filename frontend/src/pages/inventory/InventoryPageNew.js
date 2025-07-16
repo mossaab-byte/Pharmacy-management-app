@@ -358,7 +358,7 @@ const InventoryPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-gray-900">${Number(inventoryStats.total_value || 0).toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">{Number(inventoryStats.total_value || 0).toFixed(2)} DH</p>
               </div>
             </div>
           </Card>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Select, Textarea } from '../UI';
-import MedicineSearchWithBarcode from '../common/MedicineSearchWithBarcode';
+import MedicineAutocomplete from '../common/MedicineAutocomplete';
 import exchangeService from '../../services/exchangeService';
 import medicineService from '../../services/medicineService';
 import { useNavigate } from 'react-router-dom';
@@ -229,10 +229,12 @@ const ComprehensiveExchangeForm = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Select Medicine *
             </label>
-            <MedicineSearchWithBarcode 
-              onMedicineSelect={handleMedicineSelect}
-              placeholder="Search medicine by name, DCI, or scan barcode..."
+            <MedicineAutocomplete 
+              onSelect={handleMedicineSelect}
+              placeholder="Rechercher médicament par nom, DCI, ou scanner code-barres..."
               className="w-full"
+              maxResults={8}
+              showBarcode={true}
             />
           </div>
 

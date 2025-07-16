@@ -49,7 +49,7 @@ const RevenueChart = ({ data }) => {
             cornerRadius: 8,
             displayColors: false,
             callbacks: {
-              label: (context) => `Revenue: $${context.parsed.y.toLocaleString()}`,
+              label: (context) => `Revenus: ${context.parsed.y.toLocaleString()} DH`,
             },
           },
         },
@@ -68,7 +68,7 @@ const RevenueChart = ({ data }) => {
             },
             ticks: {
               color: '#6b7280',
-              callback: (value) => `$${value.toLocaleString()}`,
+              callback: (value) => `${value.toLocaleString()} DH`,
             },
           },
         },
@@ -88,7 +88,7 @@ const RevenueChart = ({ data }) => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Tendance des Revenus</h3>
       <div className="h-64">
         <canvas ref={chartRef}></canvas>
       </div>

@@ -136,7 +136,7 @@ const PurchaseForm = () => {
                 </div>
                 {selectedMedicine && (
                   <div className="text-sm text-gray-500">
-                    Unit Cost: ${selectedMedicine.unit_cost?.toFixed(2) || '0.00'}
+                    Coût Unitaire: {selectedMedicine.unit_cost?.toFixed(2) || '0.00'} DH
                   </div>
                 )}
               </div>
@@ -166,7 +166,7 @@ const PurchaseForm = () => {
       </Button>
 
       <div className="text-right font-semibold text-lg text-gray-700 mb-6">
-        Total: ${total.toFixed(2)}
+        Total: {total.toFixed(2)} DH
       </div>
 
       <div className="flex justify-end gap-3">

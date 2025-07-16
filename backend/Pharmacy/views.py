@@ -233,3 +233,64 @@ def sales_stats(request):
         total = Sale.objects.filter(pharmacy=pharmacy, created_at__date=day).aggregate(total=Sum('total_amount'))['total'] or 0
         stats.append({"date": day.strftime("%Y-%m-%d"), "total": total})
     return Response(stats)
+
+    @action(detail=True, methods=['post'], url_path='manual-stock-add')
+    def manual_stock_add(self, request, pk=None):
+        """Add stock manually with permission check"""
+        user = request.user
+        
+        # Check permissions
+        if not (user.is_pharmacist or user.can_manage_inventory):
+            return Response(
+                {'error': 'Permission denied. You cannot manage inventory.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        pm = self.get_object()
+        
+        try:
+            amount = int(request.data.get('quantity', 0))
+            reason = request.data.get('reason', 'MANUAL_ADD')
+            notes = request.data.get('notes', '')
+            
+            if amount <= 0:
+                return Response(
+                    {'error': 'Quantity must be positive'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Add stock using the model method
+            pm.add_stock(amount, user, f"{reason}: {notes}" if notes else reason)
+            
+            return Response({
+                'message': f'Successfully added {amount} units to {pm.medicine.nom}',
+                'new_quantity': pm.quantity,
+                'added_by': user.username,
+                'timestamp': pm.last_updated
+            })
+            
+        except ValueError:
+            return Response(
+                {'error': 'Invalid quantity format'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error adding stock: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'], url_path='low-stock')
+    def low_stock(self, request):
+        """Get medicines with low stock"""
+        user = request.user
+        threshold = int(request.query_params.get('threshold', 10))
+        
+        queryset = self.get_queryset().filter(quantity__lte=threshold)
+        serializer = self.get_serializer(queryset, many=True)
+        
+        return Response({
+            'count': queryset.count(),
+            'threshold': threshold,
+            'medicines': serializer.data
+        })

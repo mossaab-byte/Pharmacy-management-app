@@ -130,15 +130,15 @@ const Dashboard = () => {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <KpiCard
-            title="Total Revenue"
-            value={`$${data?.kpis?.totalRevenue?.toLocaleString() || '0'}`}
+            title="Revenus Totaux"
+            value={`${data?.kpis?.totalRevenue?.toLocaleString() || '0'} DH`}
             icon={DollarSign}
             color="green"
             trend="up"
             trendValue="+12%"
           />
           <KpiCard
-            title="Prescriptions Filled"
+            title="Ordonnances Exécutées"
             value={data?.kpis?.prescriptionsFilled?.toLocaleString() || '0'}
             icon={Package}
             color="blue"
@@ -146,15 +146,15 @@ const Dashboard = () => {
             trendValue="+8%"
           />
           <KpiCard
-            title="Inventory Value"
-            value={`$${data?.kpis?.inventoryValue?.toLocaleString() || '0'}`}
+            title="Valeur Inventaire"
+            value={`${data?.kpis?.inventoryValue?.toLocaleString() || '0'} DH`}
             icon={TrendingUp}
             color="purple"
             trend="up"
             trendValue="+5%"
           />
           <KpiCard
-            title="Total Sales"
+            title="Ventes Totales"
             value={data?.sales?.length?.toLocaleString() || '0'}
             icon={ShoppingCart}
             color="orange"
@@ -173,20 +173,20 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {data?.sales && <SalesChart data={data.sales} />}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistiques Rapides</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Average Sale</span>
+                <span className="text-gray-600">Vente Moyenne</span>
                 <span className="font-semibold">
-                  ${data?.sales?.length ? (data.sales.reduce((sum, sale) => {
+                  {data?.sales?.length ? (data.sales.reduce((sum, sale) => {
                     // Safely add total_amount if it exists and is a number
                     const amount = Number(sale?.total_amount);
                     return sum + (isNaN(amount) ? 0 : amount);
-                  }, 0) / data.sales.length).toFixed(2) : '0'}
+                  }, 0) / data.sales.length).toFixed(2) : '0'} DH
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Low Stock Items</span>
+                <span className="text-gray-600">Articles Stock Faible</span>
                 <span className="font-semibold text-red-600">
                   {data?.inventory?.filter(item => {
                     const stock = Number(item?.stock) || 0;
@@ -196,7 +196,7 @@ const Dashboard = () => {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Products</span>
+                <span className="text-gray-600">Total Produits</span>
                 <span className="font-semibold">{data?.inventory?.length || 0}</span>
               </div>
             </div>

@@ -265,7 +265,7 @@ const SalesManagementPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">${Number(salesStats.total_revenue || 0).toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">{Number(salesStats.total_revenue || 0).toFixed(2)} DH</p>
               </div>
             </div>
           </Card>
@@ -277,7 +277,7 @@ const SalesManagementPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Avg Sale</p>
-                <p className="text-2xl font-bold text-gray-900">${Number(salesStats.avg_sale_amount || 0).toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">{Number(salesStats.avg_sale_amount || 0).toFixed(2)} DH</p>
               </div>
             </div>
           </Card>

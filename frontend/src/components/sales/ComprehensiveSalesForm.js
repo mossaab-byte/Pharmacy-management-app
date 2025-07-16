@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Select } from '../UI';
-import MedicineSearchWithBarcode from '../common/MedicineSearchWithBarcode';
+import MedicineAutocomplete from '../common/MedicineAutocomplete';
 import customerService from '../../services/customerService';
 import salesService from '../../services/salesServices';
 import ErrorBoundary from '../ErrorBoundary';
@@ -223,15 +223,18 @@ const ComprehensiveSalesForm = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Medicine * (Search from 5000+ medicines)
                       </label>
-                      <MedicineSearchWithBarcode
-                        onMedicineSelect={(medicine) => handleMedicineSelect(medicine, index)}
-                        placeholder="Search medicines by name, DCI, or code..."
+                      <MedicineAutocomplete
+                        onSelect={(medicine) => handleMedicineSelect(medicine, index)}
+                        placeholder="Rechercher médicaments par nom, DCI, code..."
+                        className="w-full"
+                        maxResults={8}
+                        showBarcode={true}
                       />
                       {item.medicine && (
                         <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
                           <div className="font-medium">{item.medicine.nom}</div>
                           <div className="text-gray-600">{item.medicine.dci1} • {item.medicine.forme}</div>
-                          <div className="text-gray-600">Price: ${(item.medicine.ppv || 0).toFixed(2)}</div>
+                          <div className="text-gray-600">Prix: {parseFloat(item.medicine.ppv || 0).toFixed(2)} DH</div>
                         </div>
                       )}
                     </div>
@@ -271,7 +274,7 @@ const ComprehensiveSalesForm = () => {
                       </label>
                       <Input
                         type="text"
-                        value={`$${item.total.toFixed(2)}`}
+                        value={`${item.total.toFixed(2)} DH`}
                         readOnly
                         className="w-full bg-gray-50 font-medium"
                       />
@@ -300,7 +303,7 @@ const ComprehensiveSalesForm = () => {
               <div className="flex justify-end">
                 <div className="text-right">
                   <div className="text-lg font-semibold">
-                    Total Amount: ${calculateTotal().toFixed(2)}
+                    Montant Total: {calculateTotal().toFixed(2)} DH
                   </div>
                 </div>
               </div>

@@ -30,7 +30,7 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">
-              Pharmacy Management System
+              Mophar
             </h1>
           </div>
           

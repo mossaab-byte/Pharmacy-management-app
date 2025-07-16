@@ -16,7 +16,7 @@ const SalesTable = ({ sales, onView, onDelete }) => (
         <tr key={sale.id} className="hover:bg-gray-50">
           <td className="p-2 border">{new Date(sale.date).toLocaleDateString()}</td>
           <td className="p-2 border">{sale.customer_name}</td>
-          <td className="p-2 border">${sale.total.toFixed(2)}</td>
+          <td className="p-2 border">{sale.total.toFixed(2)} DH</td>
           <td className="p-2 border space-x-2">
             <Button size="sm" onClick={() => onView(sale.id)} className="cursor-pointer">
               View

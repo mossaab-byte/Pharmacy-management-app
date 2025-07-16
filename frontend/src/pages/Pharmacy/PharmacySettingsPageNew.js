@@ -35,7 +35,7 @@ const PharmacySettingsPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Pharmacy Name</p>
-                <p className="text-lg font-bold text-gray-900">PharmaCare</p>
+                <p className="text-lg font-bold text-gray-900">Mophar</p>
               </div>
             </div>
           </Card>

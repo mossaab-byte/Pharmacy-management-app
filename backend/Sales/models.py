@@ -13,17 +13,29 @@ class Customer(models.Model):
         )
         phone = models.CharField(max_length=20, blank=True)
         address = models.TextField(blank=True)
+        credit_limit = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+        
         @property
         def balance(self):
+            from decimal import Decimal
             total_sales = Sale.objects.filter(customer=self).aggregate(
                 total=models.Sum('total_amount')
-            )['total'] or 0
+            )['total'] or Decimal('0.00')
             
             total_payments = Payment.objects.filter(sale__customer=self).aggregate(
                 total=models.Sum('amount')
-            )['total'] or 0
+            )['total'] or Decimal('0.00')
             
             return total_sales - total_payments
+
+        @property
+        def available_credit(self):
+            return self.credit_limit - self.balance
+
+        def can_buy_on_credit(self, amount):
+            from decimal import Decimal
+            amount_decimal = Decimal(str(amount))
+            return (self.balance + amount_decimal) <= self.credit_limit
 
         def __str__(self):
             return str(self.user)

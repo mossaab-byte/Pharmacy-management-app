@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Select } from '../UI';
-import MedicineSearchWithBarcode from '../common/MedicineSearchWithBarcode';
+import MedicineAutocomplete from '../common/MedicineAutocomplete';
 import supplierService from '../../services/supplierService';
 import medicineService from '../../services/medicineService';
 import purchaseService from '../../services/purchaseService';
@@ -266,10 +266,12 @@ const ComprehensivePurchaseForm = () => {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Add Medicines to Purchase
         </label>
-        <MedicineSearchWithBarcode 
-          onMedicineSelect={handleMedicineSelect}
-          placeholder="Search medicine by name, DCI, or scan barcode..."
+        <MedicineAutocomplete 
+          onSelect={handleMedicineSelect}
+          placeholder="Rechercher médicament par nom, DCI, ou scanner code-barres..."
           className="w-full"
+          maxResults={8}
+          showBarcode={true}
         />
       </div>
 

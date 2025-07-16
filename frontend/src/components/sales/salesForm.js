@@ -236,7 +236,7 @@ const SalesForm = () => {
         </Button>
 
         <div className="mt-4 p-3 bg-gray-100 rounded">
-          <div className="font-semibold text-lg">Total: ${total.toFixed(2)}</div>
+          <div className="font-semibold text-lg">Total: {total.toFixed(2)} DH</div>
         </div>
 
         <div className="mt-4 space-x-2">

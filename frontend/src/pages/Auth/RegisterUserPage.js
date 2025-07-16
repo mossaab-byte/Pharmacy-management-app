@@ -68,21 +68,38 @@ const RegisterUserPage = () => {
     try {
       setLoading(true);
       
-      // Remove password_confirm from the payload
-      const { password_confirm, ...payload } = form;
-      
-      const response = await authService.registerUser(payload);
+      // Envoyer le payload complet avec password_confirm
+      const response = await authService.registerUser(form);
       
       showNotification('User registered successfully! Please login.', 'success');
       navigate('/login');
       
     } catch (error) {
       console.error('Registration error:', error);
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.error ||
-                          error.response?.data?.message ||
-                          'Registration failed. Please try again.';
-      setError(errorMessage);
+      
+      // Gérer les erreurs spécifiques du backend
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Si c'est une erreur de validation du serializer
+        if (errorData.password_confirm) {
+          setError(errorData.password_confirm[0] || 'Password confirmation error');
+        } else if (errorData.password) {
+          setError(errorData.password[0] || 'Password error');
+        } else if (errorData.username) {
+          setError(errorData.username[0] || 'Username error');
+        } else if (errorData.email) {
+          setError(errorData.email[0] || 'Email error');
+        } else {
+          const errorMessage = errorData.detail || 
+                            errorData.error ||
+                            errorData.message ||
+                            'Registration failed. Please try again.';
+          setError(errorMessage);
+        }
+      } else {
+        setError('Network error. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

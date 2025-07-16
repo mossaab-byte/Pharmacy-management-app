@@ -83,3 +83,24 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             logger.error(f"Error in MyTokenObtainPairSerializer.validate: {e}")
             raise
         return data
+
+class PharmacyUserSerializer(serializers.ModelSerializer):
+    pharmacy_name = serializers.CharField(source='pharmacy.name', read_only=True)
+    
+    class Meta:
+        model = PharmacyUser
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name', 'phone',
+            'is_pharmacist', 'is_manager', 'is_customer', 'pharmacy', 'pharmacy_name',
+            'can_manage_inventory', 'can_manage_sales', 'can_manage_purchases', 
+            'can_manage_users', 'can_view_reports'
+        ]
+        read_only_fields = ['id', 'pharmacy_name']
+
+class UserPermissionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PharmacyUser
+        fields = [
+            'can_manage_inventory', 'can_manage_sales', 'can_manage_purchases', 
+            'can_manage_users', 'can_view_reports'
+        ]

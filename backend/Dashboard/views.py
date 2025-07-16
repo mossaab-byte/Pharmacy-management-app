@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Sum, F
+from django.db.models import Sum, F, DecimalField
 from django.db.models.functions import TruncMonth, Coalesce
 
 from Pharmacy.models import PharmacyMedicine
@@ -25,11 +25,11 @@ class KpisView(APIView):
             return Response({"detail": "User has no associated pharmacy."}, status=400)
 
         total_revenue = Sale.objects.filter(pharmacy=pharmacy).aggregate(
-            total=Coalesce(Sum('total_amount'), 0)
+            total=Coalesce(Sum('total_amount'), 0, output_field=DecimalField())
         )['total']
 
         prescriptions_filled = PharmacyMedicine.objects.filter(
-            PhamrmacyMedicine__pharmacy=pharmacy
+            pharmacy=pharmacy
         ).aggregate(total=Coalesce(Sum('units_sold'), 0))['total']
 
         inventory_value = PharmacyMedicine.objects.filter(pharmacy=pharmacy).aggregate(
@@ -56,7 +56,7 @@ class TopProductsView(APIView):
         if not pharmacy:
             return Response({"detail": "User has no associated pharmacy."}, status=400)
 
-        products = (PharmacyMedicine.objects.filter(PhamrmacyMedicine__pharmacy=pharmacy)
+        products = (PharmacyMedicine.objects.filter(pharmacy=pharmacy)
                     .values('medicine__nom')
                     .annotate(units_sold=Sum('units_sold'))
                     .order_by('-units_sold')[:10])
