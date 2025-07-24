@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient';
 
+// Cache buster: 2025-07-17-17:07
 const dashboardService = {
   // Récupérer les KPIs principales
   getKpis: async () => {
@@ -48,7 +49,7 @@ const dashboardService = {
   // Récupérer l'état des stocks
   getInventoryStatus: async () => {
     try {
-      const response = await apiClient.get('/dashboard/inventory-status/');
+      const response = await apiClient.get('/dashboard/inventory/');
       return Array.isArray(response.data) ? response.data : response.data.results || [];
     } catch (error) {
       console.error('❌ Erreur lors de la récupération de l\'état des stocks:', error);
@@ -90,6 +91,39 @@ const dashboardService = {
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des données du dashboard:', error);
       throw error;
+    }
+  },
+
+  // Alias methods for backward compatibility
+  getStats: async () => {
+    try {
+      return await dashboardService.getKpis();
+    } catch (error) {
+      console.error('❌ Error getting stats:', error);
+      return {
+        total_sales: 0,
+        total_revenue: 0,
+        today_sales: 0,
+        today_revenue: 0
+      };
+    }
+  },
+
+  getSales: async (limit = 10) => {
+    try {
+      return await dashboardService.getRecentSales(limit);
+    } catch (error) {
+      console.error('❌ Error getting sales:', error);
+      return [];
+    }
+  },
+
+  getInventory: async () => {
+    try {
+      return await dashboardService.getInventoryStatus();
+    } catch (error) {
+      console.error('❌ Error getting inventory:', error);
+      return [];
     }
   }
 };

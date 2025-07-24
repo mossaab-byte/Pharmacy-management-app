@@ -15,6 +15,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
+    publicPath: '/',
     clean: true,
   },
 
@@ -54,7 +55,7 @@ module.exports = {
   ],
 
   devServer: {
-    port: 3000,
+    port: 3333,
     static: {
       directory: path.join(__dirname, 'public'),
     },

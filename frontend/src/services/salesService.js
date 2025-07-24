@@ -4,7 +4,7 @@ const salesService = {
   // Créer une nouvelle vente
   createSale: async (saleData) => {
     try {
-      const response = await apiClient.post('/sales/', saleData);
+      const response = await apiClient.post('/sales/sales/', saleData);
       return response.data;
     } catch (error) {
       console.error('Erreur création vente:', error);
@@ -15,10 +15,13 @@ const salesService = {
   // Obtenir toutes les ventes
   getAllSales: async () => {
     try {
-      const response = await apiClient.get('/sales/');
+      console.log('📞 Sales Service: Fetching all sales from /sales/sales/');
+      const response = await apiClient.get('/sales/sales/');
+      console.log('📞 Sales Service: Response received:', response.status, response.data);
       return response.data;
     } catch (error) {
-      console.error('Erreur récupération ventes:', error);
+      console.error('❌ Sales Service Error:', error.response?.status, error.response?.data);
+      console.error('❌ Full error:', error);
       throw error;
     }
   },
@@ -26,7 +29,7 @@ const salesService = {
   // Obtenir une vente par ID
   getSaleById: async (id) => {
     try {
-      const response = await apiClient.get(`/sales/${id}/`);
+      const response = await apiClient.get(`/sales/sales/${id}/`);
       return response.data;
     } catch (error) {
       console.error('Erreur récupération vente:', error);
@@ -37,7 +40,7 @@ const salesService = {
   // Supprimer une vente
   deleteSale: async (id) => {
     try {
-      const response = await apiClient.delete(`/sales/${id}/`);
+      const response = await apiClient.delete(`/sales/sales/${id}/`);
       return response.data;
     } catch (error) {
       console.error('Erreur suppression vente:', error);

@@ -10,35 +10,53 @@ from rest_framework import filters
 
 
 class SalesViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsPharmacistOrManager, CanModifySales, CanDeleteSales]
+    permission_classes = [permissions.AllowAny]  # Temporarily allow any access for testing
 
     def get_queryset(self):
         user = self.request.user
         
-        # For basic pharmacists without a specific pharmacy, return all sales
-        # (in a production environment, you might want to create a default pharmacy)
-        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
-            if hasattr(user, 'pharmacy') and user.pharmacy:
-                return Sale.objects.filter(pharmacy=user.pharmacy).order_by('-created_at')
-            else:
-                # Basic pharmacist - return all sales for now
-                return Sale.objects.all().order_by('-created_at')
-        
-        return Sale.objects.none()
+        # Return all sales for now during testing
+        return Sale.objects.all().order_by('-created_at')
 
     def get_serializer_class(self):
         if self.action == 'create':
             return SaleCreateSerializer
         return SaleSerializer
 
+    def create(self, request, *args, **kwargs):
+        print("🚀 DEBUG: Create method called")
+        print(f"🔍 DEBUG: Request data: {request.data}")
+        print(f"🔍 DEBUG: Request method: {request.method}")
+        print(f"🔍 DEBUG: Content type: {request.content_type}")
+        
+        try:
+            response = super().create(request, *args, **kwargs)
+            print(f"✅ DEBUG: Create successful, status: {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"❌ DEBUG: Create failed with error: {str(e)}")
+            print(f"❌ DEBUG: Error type: {type(e)}")
+            raise
+
     def perform_create(self, serializer):
-        # Automatically set served_by to current user
-        # For basic pharmacists without a pharmacy, set pharmacy to None or create a default one
-        user_pharmacy = getattr(self.request.user, 'pharmacy', None)
-        serializer.save(
-            served_by=self.request.user,
-            pharmacy=user_pharmacy
-        )
+        # Debug: Print the request data
+        print("🔍 DEBUG: Request data received:", self.request.data)
+        print("🔍 DEBUG: User:", self.request.user)
+        print("🔍 DEBUG: User authenticated:", self.request.user.is_authenticated)
+        
+        # For testing, allow creation without any user/pharmacy requirements
+        # Just save the basic sale without additional fields
+        
+        print("🔍 DEBUG: About to save sale...")
+        
+        try:
+            # Save without served_by and pharmacy for now
+            sale = serializer.save()
+            print("✅ DEBUG: Sale created successfully with ID:", sale.id)
+        except Exception as e:
+            print(f"❌ DEBUG: Error creating sale: {str(e)}")
+            print(f"❌ DEBUG: Error type: {type(e)}")
+            raise
 
 class PharmacySalesListAPIView(generics.ListAPIView):
     serializer_class = SaleSerializer

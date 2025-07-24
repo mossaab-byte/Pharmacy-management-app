@@ -4,7 +4,8 @@ import ErrorBoundary from '../../components/ErrorBoundary';
 import { LoadingSpinner } from '../../components/UI';
 import { Button } from '../../components/UI';
 import { Plus, ArrowLeft, RefreshCw, Search, Filter, Eye, Edit, Trash2 } from 'lucide-react';
-import salesService from '../../services/salesServices';
+// Force reload: 2025-07-17-17:30 - NEW SERVICE
+import salesServiceModule from '../../services/salesServiceNew';
 
 const SalesManagementPageStable = () => {
   const navigate = useNavigate();
@@ -18,7 +19,9 @@ const SalesManagementPageStable = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await salesService.getAll();
+      console.log('🔍 Sales service object:', salesServiceModule);
+      console.log('🔍 Available methods:', Object.keys(salesServiceModule));
+      const response = await salesServiceModule.getAllSales();
       // Ensure we always have an array
       let salesData = [];
       if (Array.isArray(response)) {
@@ -48,8 +51,9 @@ const SalesManagementPageStable = () => {
     
     setDeletingId(id);
     try {
-      await salesService.remove(id);
+      await salesServiceModule.deleteSale(id);
       setSales(prev => prev.filter(s => s.id !== id));
+      console.log(`✅ Sale ${id} deleted successfully`);
     } catch (err) {
       console.error('Error deleting sale:', err);
       setError('Failed to delete sale. Please try again.');
@@ -59,8 +63,12 @@ const SalesManagementPageStable = () => {
   };
 
   const handleView = (id) => {
+    console.log('🔍 Viewing sale with ID:', id);
     if (id) {
+      console.log('✅ Navigating to:', `/sales/${id}`);
       navigate(`/sales/${id}`);
+    } else {
+      console.log('❌ No ID provided for sale view');
     }
   };
 
@@ -176,6 +184,14 @@ const SalesManagementPageStable = () => {
           </div>
         )}
 
+        {/* Info Message */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="text-blue-800 text-sm flex items-center gap-2">
+            <Eye className="w-4 h-4" />
+            <span>💡 <strong>Tip:</strong> Click on any row to view detailed sale information, or use the action buttons on the right.</span>
+          </div>
+        </div>
+
         {/* Loading State */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -220,33 +236,67 @@ const SalesManagementPageStable = () => {
                     </tr>
                   ) : (
                     filteredSales.map((sale) => (
-                      <tr key={sale?.id || Math.random()} className="hover:bg-gray-50">
+                      <tr 
+                        key={sale?.id || Math.random()} 
+                        className="hover:bg-gray-50 hover:shadow-sm cursor-pointer transition-all duration-150 border-l-4 border-transparent hover:border-blue-400"
+                        onClick={() => handleView(sale?.id)}
+                        title="Click to view sale details"
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(sale?.date)}
+                          {formatDate(sale?.created_at || sale?.date)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          {sale?.reference || `SALE-${sale?.id || 'N/A'}`}
+                          <div>
+                            <div className="font-medium">
+                              {sale?.reference || `SALE-${sale?.id?.substring(0, 8) || 'N/A'}`}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              ID: {sale?.id?.substring(0, 8) || 'N/A'}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {sale?.customer_name || sale?.customer || 'Walk-in Customer'}
+                          <div>
+                            <div className="font-medium">
+                              {sale?.customer_name || sale?.customer || 'Walk-in Customer'}
+                            </div>
+                            {sale?.customer_phone && (
+                              <div className="text-xs text-gray-500">
+                                {sale.customer_phone}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          {formatCurrency(sale?.total || 0)}
+                          <div className="text-lg font-semibold text-green-600">
+                            {formatCurrency(sale?.total || 0)}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${getStatusStyle(sale?.status || 'pending')}`}>
-                            {sale?.status || 'pending'}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${getStatusStyle(sale?.status || 'completed')}`}>
+                            {sale?.status || 'completed'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {sale?.items_count || 0} items
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">{sale?.items?.length || sale?.items_count || 0}</span>
+                            <span>items</span>
+                          </div>
+                          {sale?.items && sale.items.length > 0 && (
+                            <div className="text-xs text-gray-400">
+                              Total qty: {sale.items.reduce((sum, item) => sum + (item.quantity || 0), 0)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleView(sale?.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleView(sale?.id);
+                              }}
                               disabled={!sale?.id}
                               className="flex items-center gap-1"
                             >
@@ -256,7 +306,10 @@ const SalesManagementPageStable = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleEdit(sale?.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(sale?.id);
+                              }}
                               disabled={!sale?.id}
                               className="flex items-center gap-1"
                             >
@@ -266,7 +319,10 @@ const SalesManagementPageStable = () => {
                             <Button
                               variant="danger"
                               size="sm"
-                              onClick={() => handleDelete(sale?.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(sale?.id);
+                              }}
                               disabled={deletingId === sale?.id || !sale?.id}
                               className="flex items-center gap-1"
                             >

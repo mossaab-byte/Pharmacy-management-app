@@ -33,7 +33,8 @@ export function DashboardProvider({ children }) {
       ]);
 
       setDashboardData({
-        kpis,
+        ...kpis, // Spread all KPI fields at the root
+        kpis,   // Also keep the original for backward compatibility
         topProducts,
         revenueTrend,
         sales,

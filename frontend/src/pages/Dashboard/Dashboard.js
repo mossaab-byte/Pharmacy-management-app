@@ -10,6 +10,7 @@ import ErrorMessage from '../../components/UI/ErrorMessage';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useDashboard } from '../../context/DashboardContext';
 
+
 const Dashboard = () => {
   const {
     dashboardData: data,
@@ -18,6 +19,14 @@ const Dashboard = () => {
     refreshing,
     refreshData: handleRefresh
   } = useDashboard();
+
+  // Debug: Always log the KPIs at the very top
+  if (data && data.kpis) {
+    console.log('Dashboard KPIs (top-level):', data.kpis);
+    console.log('Dashboard salesMonthly:', data.kpis.salesMonthly);
+  } else {
+    console.log('Dashboard KPIs (top-level):', data);
+  }
 
   const [user, setUser] = useState(null);
 
@@ -108,6 +117,8 @@ const Dashboard = () => {
     );
   }
 
+  // Debug: Log the KPIs received from backend
+  console.log('Dashboard KPIs:', data?.kpis);
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -116,6 +127,10 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600 mt-2">Welcome back! Here's your pharmacy overview.</p>
+            {/* DEBUG: Show the full dashboard data object */}
+            <pre style={{background:'#eee',color:'#222',padding:'8px',borderRadius:'6px',fontSize:'12px',maxWidth:'600px',overflow:'auto'}}>
+              {JSON.stringify(data, null, 2)}
+            </pre>
           </div>
           <button
             onClick={handleRefresh}
@@ -130,32 +145,34 @@ const Dashboard = () => {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <KpiCard
-            title="Revenus Totaux"
-            value={`${data?.kpis?.totalRevenue?.toLocaleString() || '0'} DH`}
+            title="Total Sales"
+            value={`${Array.isArray(data?.salesMonthly) && data.salesMonthly.length > 0
+              ? data.salesMonthly.reduce((sum, m) => sum + (typeof m.total === 'number' ? m.total : 0), 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+              : '0.00'} DH`}
             icon={DollarSign}
             color="green"
             trend="up"
             trendValue="+12%"
           />
           <KpiCard
-            title="Ordonnances Exécutées"
-            value={data?.kpis?.prescriptionsFilled?.toLocaleString() || '0'}
+            title="Clients"
+            value={data?.kpis?.totalCustomers?.toLocaleString() || '0'}
             icon={Package}
             color="blue"
             trend="up"
             trendValue="+8%"
           />
           <KpiCard
-            title="Valeur Inventaire"
-            value={`${data?.kpis?.inventoryValue?.toLocaleString() || '0'} DH`}
+            title="Total Médicaments (Stock)"
+            value={data?.kpis?.totalMedicines?.toLocaleString() || '0'}
             icon={TrendingUp}
             color="purple"
             trend="up"
             trendValue="+5%"
           />
           <KpiCard
-            title="Ventes Totales"
-            value={data?.sales?.length?.toLocaleString() || '0'}
+            title="Achats Mensuels (DH)"
+            value={`${data?.kpis?.purchasesMonthly ? data.kpis.purchasesMonthly.reduce((sum, m) => sum + (m.total || m.total_amount || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'} DH`}
             icon={ShoppingCart}
             color="orange"
             trend="up"
@@ -165,7 +182,8 @@ const Dashboard = () => {
 
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {data?.revenueTrend && <RevenueChart data={data.revenueTrend} />}
+          {/* Use backend monthly sales for the chart */}
+          {data?.kpis?.salesMonthly && <RevenueChart data={data.kpis.salesMonthly.map(m => ({ date: m.month, revenue: m.total || m.total_amount || 0 }))} />}
           {data?.topProducts && <TopProductsChart data={data.topProducts} />}
         </div>
 

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
@@ -80,7 +81,11 @@ const DashboardStable = () => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-2xl font-bold text-gray-900">
+              {Array.isArray(stats.salesMonthly) && stats.salesMonthly.length > 0
+                ? `${stats.salesMonthly.reduce((sum, m) => sum + (typeof m.total === 'number' ? m.total : 0), 0).toFixed(2)} DH`
+                : formatCurrency(stats.totalSales)}
+          </p>
         </div>
         <div className={`p-3 rounded-full ${color}`}>
           <Icon className="w-6 h-6 text-white" />
@@ -256,7 +261,15 @@ const DashboardStable = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
                 title="Total Sales"
-                value={formatCurrency(stats.totalSales)}
+                value={(() => {
+                  // Try to use salesMonthly from backend if available
+                  if (typeof stats.salesMonthly !== 'undefined' && Array.isArray(stats.salesMonthly) && stats.salesMonthly.length > 0) {
+                    const sum = stats.salesMonthly.reduce((acc, m) => acc + (typeof m.total === 'number' ? m.total : 0), 0);
+                    return formatCurrency(sum);
+                  }
+                  // Fallback to totalSales
+                  return formatCurrency(stats.totalSales);
+                })()}
                 icon={DollarSign}
                 color="bg-green-500"
                 onClick={() => navigate('/sales')}

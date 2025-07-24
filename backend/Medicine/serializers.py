@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import *
+
 class MedicineSerializer(serializers.ModelSerializer):
     # Keep original field names for compatibility
     name = serializers.CharField(source='nom')
@@ -13,12 +14,29 @@ class MedicineSerializer(serializers.ModelSerializer):
     # Add frontend-expected field names
     nom = serializers.CharField()
     prix_public = serializers.DecimalField(source='prix_br', max_digits=8, decimal_places=2)
+    ppv = serializers.DecimalField(source='prix_br', max_digits=8, decimal_places=2)  # Alternative price field
     nom_commercial = serializers.CharField(source='nom')  # Use nom as commercial name
-    stock = serializers.SerializerMethodField()  # Add mock stock for now
+    stock = serializers.SerializerMethodField()  # Real pharmacy stock
     
     def get_stock(self, obj):
-        # Return a mock stock value for now (in production, this would come from inventory)
-        return 10
+        """Get real stock from PharmacyMedicine"""
+        try:
+            from Inventory.models import PharmacyMedicine
+            from Pharmacy.models import Pharmacy
+            
+            # Get the first pharmacy (in production, this would be user's pharmacy)
+            pharmacy = Pharmacy.objects.first()
+            if not pharmacy:
+                return 0
+                
+            pharmacy_medicine = PharmacyMedicine.objects.filter(
+                pharmacy=pharmacy, 
+                medicine=obj
+            ).first()
+            
+            return pharmacy_medicine.quantity if pharmacy_medicine else 0
+        except Exception:
+            return 0
     
     class Meta:
         model = Medicine
@@ -27,6 +45,6 @@ class MedicineSerializer(serializers.ModelSerializer):
             'form', 'presentation', 'public_price', 'cost_price',
             'princeps_generique', 'taux_remboursement', 'remise', 'tva', 'type',
             # Add frontend-expected fields
-            'nom', 'prix_public', 'nom_commercial', 'forme', 'stock'
+            'nom', 'prix_public', 'ppv', 'nom_commercial', 'forme', 'stock'
         ]
         read_only_fields = fields

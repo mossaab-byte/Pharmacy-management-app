@@ -1,3 +1,4 @@
+window.alert("DASHBOARD NEW LOADED");
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Package, TrendingUp, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react';
 import ErrorBoundary from '../../components/ErrorBoundary';

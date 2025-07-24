@@ -49,27 +49,80 @@ class PharmacyViewSet(viewsets.ModelViewSet):
 
 
 class PharmacyMedicineViewSet(viewsets.ModelViewSet):
+    @action(detail=False, methods=['get'], url_path='full-inventory')
+    def full_inventory(self, request):
+        """
+        Returns all medicines, with inventory info if present for the user's pharmacy, or a flag if not.
+        """
+        from Medicine.models import Medicine
+        from .models import PharmacyMedicine
+        from .serializers import PharmacyMedicineSerializer
+        user = request.user
+        # Determine pharmacy
+        pharmacy = None
+        if user.is_superuser and 'pharmacy_id' in request.query_params:
+            from Pharmacy.models import Pharmacy
+            try:
+                pharmacy = Pharmacy.objects.get(id=request.query_params['pharmacy_id'])
+            except Exception:
+                pharmacy = None
+        elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+            pharmacy = user.owned_pharmacy
+        elif hasattr(user, 'pharmacy') and user.pharmacy:
+            pharmacy = user.pharmacy
+        if not pharmacy:
+            return Response({'error': 'No pharmacy found for user.'}, status=400)
+
+        medicines = Medicine.objects.all().order_by('nom')
+        inventory_map = {pm.medicine_id: pm for pm in PharmacyMedicine.objects.filter(pharmacy=pharmacy)}
+        result = []
+        for med in medicines:
+            pm = inventory_map.get(med.id)
+            if pm:
+                data = PharmacyMedicineSerializer(pm).data
+                data['in_inventory'] = True
+            else:
+                data = {
+                    'id': None,
+                    'medicine': med.id,
+                    'medicine_name': med.nom,
+                    'medicine_code': med.code,
+                    'quantity': 0,
+                    'in_inventory': False,
+                    'pharmacy': pharmacy.id,
+                }
+            result.append(data)
+        return Response(result)
     serializer_class = PharmacyMedicineSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        
+        qs = PharmacyMedicine.objects.select_related('pharmacy', 'medicine')
         if user.is_superuser:
-            # Superuser can see all pharmacy medicines
-            return PharmacyMedicine.objects.select_related('pharmacy', 'medicine').all()
+            pass  # all pharmacies
         elif user.is_pharmacist:
-            # Pharmacist can see medicines from their pharmacy
             if hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
-                return PharmacyMedicine.objects.filter(pharmacy=user.owned_pharmacy).select_related('pharmacy', 'medicine')
+                qs = qs.filter(pharmacy=user.owned_pharmacy)
             elif user.pharmacy:
-                return PharmacyMedicine.objects.filter(pharmacy=user.pharmacy).select_related('pharmacy', 'medicine')
+                qs = qs.filter(pharmacy=user.pharmacy)
+            else:
+                return PharmacyMedicine.objects.none()
         elif user.is_manager and user.pharmacy:
-            # Manager can see medicines from their pharmacy
-            return PharmacyMedicine.objects.filter(pharmacy=user.pharmacy).select_related('pharmacy', 'medicine')
-        
-        # Default: no access
-        return PharmacyMedicine.objects.none()
+            qs = qs.filter(pharmacy=user.pharmacy)
+        else:
+            return PharmacyMedicine.objects.none()
+
+        # Annotate for sorting: quantity>0 first, then by name
+        from django.db.models import Case, When, Value, IntegerField
+        qs = qs.annotate(
+            has_stock=Case(
+                When(quantity__gt=0, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField()
+            )
+        ).order_by('-has_stock', '-quantity', 'medicine__nom')
+        return qs
 
     def perform_create(self, serializer):
         # Assign to user's pharmacy

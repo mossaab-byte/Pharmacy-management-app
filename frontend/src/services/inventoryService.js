@@ -4,11 +4,12 @@ const inventoryService = {
   // Get pharmacy inventory (PharmacyMedicine items)
   getInventory: async (params = {}) => {
     try {
-      const response = await apiClient.get('/pharmacy/pharmacy-medicines/', { params });
-      console.log('Inventory loaded successfully:', response.data?.length || response.data?.results?.length || 0, 'items');
+      console.log('🔍 Fetching inventory from:', '/pharmacy/pharmacy-medicines/full-inventory/');
+      const response = await apiClient.get('/pharmacy/pharmacy-medicines/full-inventory/', { params });
+      console.log('📦 Full inventory response:', response);
       return response;
     } catch (error) {
-      console.error('Error fetching inventory:', error);
+      console.error('❌ Error fetching inventory:', error);
       throw new Error(`Failed to fetch inventory: ${error.response?.data?.detail || error.message}`);
     }
   },

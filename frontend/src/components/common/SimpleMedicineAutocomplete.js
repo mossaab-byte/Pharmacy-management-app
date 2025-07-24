@@ -41,9 +41,12 @@ const SimpleMedicineAutocomplete = ({
 
   // Fonction de recherche optimisée avec cache
   const searchMedicines = (query) => {
+    console.log('🔍 Searching for:', query); // Debug log
+    
     if (!query || query.length < 2) {
       setResults([]);
       setShowDropdown(false);
+      setLoading(false);
       return;
     }
 
@@ -56,14 +59,22 @@ const SimpleMedicineAutocomplete = ({
     setLoading(true);
     
     // Recherche instantanée dans le cache
-    const queryLower = query.toLowerCase();
-    const filtered = allMedicinesRef.current.filter(medicine => 
-      medicine.nom_commercial?.toLowerCase().includes(queryLower) ||
-      medicine.nom?.toLowerCase().includes(queryLower) ||
-      medicine.dci1?.toLowerCase().includes(queryLower) ||
-      medicine.code?.toLowerCase().includes(queryLower) ||
-      medicine.forme?.toLowerCase().includes(queryLower)
-    ).slice(0, 10); // Limiter à 10 résultats
+    const queryLower = query.toLowerCase().trim();
+    const filtered = allMedicinesRef.current.filter(medicine => {
+      const nomCommercial = (medicine.nom_commercial || '').toLowerCase();
+      const nom = (medicine.nom || '').toLowerCase();
+      const dci1 = (medicine.dci1 || '').toLowerCase();
+      const code = (medicine.code || '').toLowerCase();
+      const forme = (medicine.forme || '').toLowerCase();
+      
+      return nomCommercial.includes(queryLower) ||
+             nom.includes(queryLower) ||
+             dci1.includes(queryLower) ||
+             code.includes(queryLower) ||
+             forme.includes(queryLower);
+    }).slice(0, 10); // Limiter à 10 résultats
+    
+    console.log(`Found ${filtered.length} results for "${query}"`); // Debug log
     
     setResults(filtered);
     setShowDropdown(filtered.length > 0);
@@ -76,10 +87,28 @@ const SimpleMedicineAutocomplete = ({
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       searchMedicines(searchTerm);
-    }, 50); // Recherche quasi-instantanée avec cache
+    }, 100); // Slight delay to allow for proper typing
 
     return () => clearTimeout(debounceRef.current);
   }, [searchTerm]);
+
+  // Handle input change with immediate feedback
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // Clear results immediately if input is too short
+    if (value.length < 2) {
+      setResults([]);
+      setShowDropdown(false);
+      setSelectedIndex(-1);
+    }
+    
+    // If we have a selected medicine and user is typing, clear the selection
+    if (selectedMedicine && value !== (selectedMedicine.nom_commercial || selectedMedicine.nom || '')) {
+      onSelect(null);
+    }
+  };
 
   // Keyboard navigation
   const handleKeyDown = (e) => {
@@ -122,31 +151,46 @@ const SimpleMedicineAutocomplete = ({
     setResults([]);
     setShowDropdown(false);
     setSelectedIndex(-1);
-    onSelect(null);
+    setLoading(false);
+    if (onSelect) {
+      onSelect(null);
+    }
   };
 
   // Update search term when selectedMedicine changes
   useEffect(() => {
     if (selectedMedicine) {
-      setSearchTerm(selectedMedicine.nom_commercial || selectedMedicine.nom || '');
-    } else {
-      setSearchTerm('');
+      const displayName = selectedMedicine.nom_commercial || selectedMedicine.nom || '';
+      setSearchTerm(displayName);
+      setResults([]);
+      setShowDropdown(false);
+    } else if (!searchTerm) {
+      // Only clear if search term is empty (to avoid clearing when user is typing)
+      setResults([]);
+      setShowDropdown(false);
     }
   }, [selectedMedicine]);
 
   return (
     <div className="relative">
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 mb-1">
+          Search: "{searchTerm}" | Results: {results.length} | Dropdown: {showDropdown ? 'Open' : 'Closed'}
+        </div>
+      )}
+      
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <input
           ref={searchRef}
           type="text"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            // Seulement montrer le dropdown s'il y a des résultats et pas de médicament sélectionné
-            if (searchTerm.length >= 2 && results.length > 0 && !selectedMedicine) {
+            // Show dropdown if there are results and search term is valid
+            if (searchTerm.length >= 2 && results.length > 0) {
               setShowDropdown(true);
             }
           }}
@@ -213,6 +257,24 @@ const SimpleMedicineAutocomplete = ({
                   )}
                   <div className="text-xs text-gray-500">
                     {medicine.forme} • Code: {medicine.code}
+                  </div>
+                  {/* Stock Information */}
+                  <div className={`text-xs font-medium mt-1 ${
+                    (medicine.stock || 0) > 20 ? 'text-green-600' : 
+                    (medicine.stock || 0) > 5 ? 'text-yellow-600' : 
+                    'text-red-600'
+                  }`}>
+                    Stock: {medicine.stock || 0} unités
+                    {(medicine.stock || 0) === 0 && (
+                      <span className="ml-1 px-1 py-0.5 bg-red-100 text-red-700 rounded text-xs">
+                        Rupture
+                      </span>
+                    )}
+                    {(medicine.stock || 0) > 0 && (medicine.stock || 0) <= 5 && (
+                      <span className="ml-1 px-1 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs">
+                        Stock faible
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">

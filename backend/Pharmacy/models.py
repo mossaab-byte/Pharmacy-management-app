@@ -80,7 +80,7 @@ class PharmacyMedicine(models.Model):
             return False
         old_quantity = self.quantity
         self.quantity -= amount
-        self.units_sold +=1
+        self.units_sold += amount  # Fix: increment by amount sold, not by 1
         self.save()
         # Distinguish sale vs return by presence of 'items'
         is_sale = reference_transaction and hasattr(reference_transaction, 'items')

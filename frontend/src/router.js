@@ -17,7 +17,7 @@ import CustomerDetailPage from './pages/Customers/customerDetailPage';
 import CustomerForm from './components/customers/customerForm';
 import SalesFormPage from './pages/Sales/salesForm';
 import SimpleStableSalesForm from './components/sales/SimpleStableSalesForm';
-import SaleDetailPage from './pages/Sales/salesDetailPage';
+import SaleDetailPage from './pages/Sales/SaleDetailPage';
 import SalesManagementPage from './pages/Sales/SalesManagementPageStable';
 import SupplierDetailsPage from './pages/Suppliers/SupplierDetailsPage';
 import SupplierListPage from './pages/Suppliers/SuppliersListPage';
@@ -47,10 +47,11 @@ import TroubleshootingPage from './components/debug/TroubleshootingPage';
 import DiagnosticSalesForm from './components/debug/DiagnosticSalesForm';
 import APITestPage from './components/debug/APITestPage';
 import MedicineSearchTest from './components/debug/MedicineSearchTest';
+import BackendDiagnostic from './components/debug/BackendDiagnostic';
 
 // New module pages
 import MedicinesPage from './pages/Medicines/MedicinesPageQuickFix';
-import InventoryPage from './pages/Inventory/InventoryPageNew';
+import SimpleInventoryPage from './pages/inventory/SimpleInventoryPage';
 import FinanceDashboard from './pages/Finance/FinanceDashboardNew';
 import UsersPage from './pages/Users/UsersPageNew';
 import PharmacySettingsPage from './pages/Pharmacy/PharmacySettingsPageNew';
@@ -95,6 +96,7 @@ export default function AppRouter() {
         {/* Sales */}
         <Route path="/sales" element={<ProtectedRoute><SalesManagementPage /></ProtectedRoute>} />
         <Route path="/sales/new" element={<ProtectedRoute><SalesFormPage /></ProtectedRoute>} />
+        <Route path="/sales/edit/:id" element={<ProtectedRoute><SalesFormPage /></ProtectedRoute>} />
         <Route path="/sales/stable" element={<ProtectedRoute><div className="page p-6"><SimpleStableSalesForm /></div></ProtectedRoute>} />
         <Route path="/sales/:id" element={<ProtectedRoute><SaleDetailPage /></ProtectedRoute>} />
 
@@ -118,7 +120,7 @@ export default function AppRouter() {
         <Route path="/medicines" element={<ProtectedRoute><MedicinesPage /></ProtectedRoute>} />
 
         {/* Inventory */}
-        <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute><SimpleInventoryPage /></ProtectedRoute>} />
 
         {/* Finance */}
         <Route path="/finance" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
@@ -142,6 +144,7 @@ export default function AppRouter() {
         <Route path="/test/api" element={<ProtectedRoute><APITestPage /></ProtectedRoute>} />
         <Route path="/troubleshoot" element={<ProtectedRoute><TroubleshootingPage /></ProtectedRoute>} />
         <Route path="/diagnose" element={<ProtectedRoute><DiagnosticSalesForm /></ProtectedRoute>} />
+        <Route path="/debug/backend" element={<ProtectedRoute><BackendDiagnostic /></ProtectedRoute>} />
 
         {/* Fallback redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />

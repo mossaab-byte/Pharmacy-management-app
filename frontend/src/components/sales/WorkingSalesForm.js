@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Minus, Save, ShoppingCart, Scan } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Plus, Minus, Save, ShoppingCart, Scan, UserPlus } from 'lucide-react';
 import { Button } from '../UI';
 import SimpleMedicineAutocomplete from '../common/SimpleMedicineAutocomplete';
-import salesService from '../../services/salesServices';
+import SimpleCustomerCreateModal from '../Customers/SimpleCustomerCreateModal';
+import * as salesServiceModule from '../../services/salesServiceNew';
+import customerService from '../../services/customerService';
+
+const salesService = salesServiceModule.default || salesServiceModule;
 
 const WorkingSalesForm = () => {
+  const navigate = useNavigate();
+  const { id: saleId } = useParams(); // Get sale ID for edit mode
+  const isEditMode = Boolean(saleId);
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [saleItems, setSaleItems] = useState([{ 
@@ -18,24 +26,117 @@ const WorkingSalesForm = () => {
   const [message, setMessage] = useState('');
   const [scannerActive, setScannerActive] = useState(true);
   const [scannedCode, setScannedCode] = useState('');
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   
   // Référence pour le scanner automatique
   const scannerInputRef = useRef(null);
   const scanTimeoutRef = useRef(null);
 
-  // Mock customers for now - we know this works
-  const mockCustomers = [
-    { id: 'passage', name: 'Client de passage', phone: 'N/A', isDefault: true },
-    { id: 1, name: 'Ahmed Benali', phone: '0612345678' },
-    { id: 2, name: 'Fatima Zahra', phone: '0623456789' },
-    { id: 3, name: 'Omar Bennani', phone: '0634567890' },
-    { id: 4, name: 'Aicha Mansouri', phone: '0645678901' }
-  ];
+  // Load real customers from API
+  const loadCustomers = async () => {
+    try {
+      console.log('🔍 Loading customers from API...');
+      const apiCustomers = await customerService.getAll();
+      console.log('✅ Loaded customers:', apiCustomers);
+      
+      // Format customers for the dropdown
+      const formattedCustomers = [
+        { id: 'passage', name: 'Client de passage', phone: 'N/A', isDefault: true },
+        ...apiCustomers.map(customer => ({
+          id: customer.id,
+          name: customer.full_name || (customer.user ? `${customer.user.first_name} ${customer.user.last_name}`.trim() : 'Unknown Customer'),
+          phone: customer.phone || 'N/A',
+          balance: Number(customer.balance) || 0,
+          credit_limit: Number(customer.credit_limit) || 0
+        }))
+      ];
+      
+      setCustomers(formattedCustomers);
+      console.log('✅ Formatted customers for dropdown:', formattedCustomers);
+    } catch (error) {
+      console.error('❌ Error loading customers:', error);
+      // Fallback to default customer only
+      setCustomers([
+        { id: 'passage', name: 'Client de passage', phone: 'N/A', isDefault: true }
+      ]);
+    }
+  };
+
+  // Handle customer creation from modal
+  const handleCustomerCreated = (newCustomer) => {
+    console.log('✅ New customer created:', newCustomer);
+    
+    // Add the new customer to the list
+    const formattedCustomer = {
+      id: newCustomer.id,
+      name: newCustomer.full_name || `${newCustomer.user?.first_name || ''} ${newCustomer.user?.last_name || ''}`.trim(),
+      phone: newCustomer.phone || 'N/A',
+      balance: newCustomer.balance || 0,
+      credit_limit: newCustomer.credit_limit || 0
+    };
+    
+    setCustomers(prev => [...prev, formattedCustomer]);
+    
+    // Auto-select the new customer
+    setSelectedCustomer(newCustomer.id);
+    
+    setMessage(`✅ Nouveau client créé: ${formattedCustomer.name}`);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  // Function to load existing sale data for editing
+  const loadExistingSale = async () => {
+    try {
+      setLoading(true);
+      console.log(`🔍 Loading existing sale: ${saleId}`);
+      
+      const saleData = await salesService.getSaleDetails(saleId);
+      console.log('✅ Loaded sale data:', saleData);
+      
+      // Set customer
+      if (saleData.customer) {
+        setSelectedCustomer(saleData.customer);
+      } else {
+        setSelectedCustomer('passage');
+      }
+      
+      // Convert sale items to form format
+      if (saleData.items && saleData.items.length > 0) {
+        const formattedItems = saleData.items.map((item, index) => ({
+          id: index + 1,
+          medicine: {
+            id: item.pharmacy_medicine || item.medicine_id,
+            nom: item.medicine_name,
+            prix: item.unit_price
+          },
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          total: item.quantity * item.unit_price
+        }));
+        
+        setSaleItems(formattedItems);
+        console.log('✅ Loaded sale items:', formattedItems);
+      }
+      
+      setMessage(`Editing sale: ${saleData.reference || 'SALE-' + saleId.substring(0, 8)}`);
+      
+    } catch (error) {
+      console.error('❌ Error loading sale:', error);
+      setMessage('Error loading sale data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setCustomers(mockCustomers);
-    // Sélectionner "Client de passage" par défaut
-    setSelectedCustomer('passage');
+    loadCustomers();
+    
+    if (isEditMode && saleId) {
+      loadExistingSale();
+    } else {
+      // Sélectionner "Client de passage" par défaut pour nouvelle vente
+      setSelectedCustomer('passage');
+    }
     
     // Setup barcode scanner listener
     const handleKeyPress = (e) => {
@@ -67,7 +168,7 @@ const WorkingSalesForm = () => {
       document.removeEventListener('keypress', handleKeyPress);
       clearTimeout(scanTimeoutRef.current);
     };
-  }, [scannerActive, scannedCode]);
+  }, [isEditMode, saleId, scannerActive, scannedCode]);
 
   // Fonction pour gérer le scan de code-barres
   const handleBarcodeScanned = async (barcode) => {
@@ -124,7 +225,14 @@ const WorkingSalesForm = () => {
     } else {
       // Ajouter une nouvelle ligne ou utiliser une ligne vide
       const emptyItemIndex = saleItems.findIndex(item => !item.medicine);
-      const price = parseFloat(medicine.prix_public || medicine.ppv || 0);
+      const price = parseFloat(medicine.prix_public || medicine.ppv || medicine.public_price || 0);
+      
+      console.log(`💰 Prix extrait pour ${medicine.nom_commercial || medicine.nom}:`, {
+        prix_public: medicine.prix_public,
+        ppv: medicine.ppv,
+        public_price: medicine.public_price,
+        finalPrice: price
+      });
       
       if (emptyItemIndex !== -1) {
         // Utiliser une ligne vide existante
@@ -190,6 +298,13 @@ const WorkingSalesForm = () => {
     if (!medicine) return;
     
     console.log('🎯 Médicament sélectionné:', medicine.nom_commercial || medicine.nom);
+    console.log('🔍 Données médicament reçues:', {
+      id: medicine.id,
+      nom: medicine.nom || medicine.nom_commercial,
+      prix_public: medicine.prix_public,
+      ppv: medicine.ppv,
+      public_price: medicine.public_price
+    });
     
     // Vérifier si existe déjà AVANT modification
     const existingItem = saleItems.find(item => 
@@ -218,62 +333,187 @@ const WorkingSalesForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log(`🚀 HandleSubmit called! Mode: ${isEditMode ? 'EDIT' : 'CREATE'}`);
+    
+    // Check token before submission
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+    console.log('🔐 Token check:', token ? 'Token exists' : 'No token found');
+    
+    // First, let's validate the basic requirements and show alerts
+    if (!selectedCustomer) {
+      alert('⚠️ Veuillez sélectionner un client');
+      setMessage('⚠️ Veuillez sélectionner un client');
+      return;
+    }
+
+    const validItems = saleItems.filter(item => item.medicine && item.quantity > 0);
+    if (validItems.length === 0) {
+      alert('⚠️ Veuillez ajouter au moins un médicament');
+      setMessage('⚠️ Veuillez ajouter au moins un médicament');
+      return;
+    }
+
+    // Validate that all items have valid prices
+    const itemsWithZeroPrice = validItems.filter(item => !item.unitPrice || item.unitPrice <= 0);
+    if (itemsWithZeroPrice.length > 0) {
+      const medicineNames = itemsWithZeroPrice.map(item => item.medicine?.nom_commercial || item.medicine?.nom || 'Unknown').join(', ');
+      alert(`⚠️ Prix manquant pour: ${medicineNames}`);
+      setMessage(`⚠️ Prix manquant pour: ${medicineNames}`);
+      return;
+    }
+
+    console.log('✅ Validation passed, proceeding with sale operation...');
+    console.log('Customer:', selectedCustomer);
+    console.log('Valid items:', validItems);
     
     try {
-      if (!selectedCustomer) {
-        setMessage('⚠️ Veuillez sélectionner un client');
-        return;
-      }
-
-      const validItems = saleItems.filter(item => item.medicine && item.quantity > 0);
-      if (validItems.length === 0) {
-        setMessage('⚠️ Veuillez ajouter au moins un médicament');
-        return;
-      }
-
       setLoading(true);
-      setMessage('💾 Enregistrement en cours...');
+      setMessage(isEditMode ? '💾 Mise à jour en cours...' : '💾 Enregistrement en cours...');
       
       // Préparer les données pour l'API
       const saleData = {
-        customer_id: selectedCustomer === 'passage' ? null : selectedCustomer,
-        total_amount: calculateGrandTotal(),
+        customer: selectedCustomer === 'passage' ? null : selectedCustomer,
         items: validItems.map(item => ({
-          medicine_id: item.medicine.id,
+          medicine_id: item.medicine.id,  // Send medicine_id, backend will convert to pharmacy_medicine
           quantity: item.quantity,
-          unit_price: item.unitPrice,
-          total_price: item.total
+          unit_price: item.unitPrice
         }))
       };
       
       console.log('💾 Envoi des données vente:', saleData);
       
-      // Appel API réel pour créer la vente
-      const response = await salesService.createSale(saleData);
-      
-      setMessage('✅ Vente enregistrée avec succès !');
-      console.log('✅ Vente créée:', response);
-      
-      // Reset form but keep "Client de passage" selected
-      setSaleItems([{ id: 1, medicine: null, quantity: 1, unitPrice: 0, total: 0 }]);
-      setSelectedCustomer('passage');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setMessage(''), 3000);
+      // TEST: Try to call the API
+      try {
+        let response;
+        
+        if (isEditMode) {
+          // Update existing sale
+          console.log('✅ Updating existing sale:', saleId);
+          if (salesService && salesService.updateSale) {
+            response = await salesService.updateSale(saleId, saleData);
+          } else {
+            // Fallback: Direct API call for update
+            const { apiClient } = await import('../../services/apiClient');
+            response = await apiClient.put(`/sales/sales/${saleId}/`, saleData);
+            response = response.data;
+          }
+          setMessage('✅ Vente mise à jour avec succès !');
+        } else {
+          // Create new sale  
+          if (salesService && salesService.createSale) {
+            console.log('✅ Using salesService.createSale');
+            response = await salesService.createSale(saleData);
+          } else {
+            console.log('⚠️ salesService.createSale not available, using direct API call');
+            // Fallback: Direct API call
+            const { apiClient } = await import('../../services/apiClient');
+            response = await apiClient.post('/sales/sales/', saleData);
+            response = response.data;
+          }
+          setMessage('✅ Vente enregistrée avec succès !');
+        }
+        
+        console.log('✅ Vente opération réussie:', response);
+        
+        if (!isEditMode) {
+          // Reset form only for new sales
+          setSaleItems([{ id: 1, medicine: null, quantity: 1, unitPrice: 0, total: 0 }]);
+          setSelectedCustomer('passage');
+        }
+        
+        // Redirect based on mode
+        setTimeout(() => {
+          if (isEditMode) {
+            navigate(`/sales/${saleId}`); // Go back to sale detail view
+          } else {
+            navigate('/dashboard'); // Go to dashboard for new sales
+          }
+        }, 1500);
+        
+      } catch (apiError) {
+        console.error('❌ API Error:', apiError);
+        console.log('🔍 Error response data:', apiError.response?.data);
+        console.log('🔍 Error response status:', apiError.response?.status);
+        console.log('🔍 Error response headers:', apiError.response?.headers);
+        
+        // Handle authentication errors specifically
+        if (apiError.response?.status === 401) {
+          console.error('🔐 Authentication error - redirecting to login');
+          setMessage('❌ Session expirée. Redirection vers la connexion...');
+          setTimeout(() => {
+            window.location.href = '/login?session_expired=true';
+          }, 1500);
+          return;
+        }
+        
+        // Handle specific stock validation errors
+        if (apiError.response?.data?.stock_error) {
+          setMessage(`❌ ${apiError.response.data.stock_error}`);
+        } else if (apiError.response?.data?.items) {
+          // Handle item validation errors
+          const itemErrors = apiError.response.data.items;
+          console.log('🔍 Item errors:', itemErrors);
+          if (itemErrors[0]?.stock_error) {
+            setMessage(`❌ ${itemErrors[0].stock_error}`);
+          } else {
+            setMessage(`❌ Erreur de validation: ${JSON.stringify(itemErrors)}`);
+          }
+        } else if (apiError.response?.data?.details) {
+          console.log('🔍 Validation details:', apiError.response.data.details);
+          console.log('🔍 Items in details:', apiError.response.data.details.items);
+          
+          // Check if items array has validation errors
+          if (apiError.response.data.details.items && apiError.response.data.details.items.length > 0) {
+            const itemError = apiError.response.data.details.items[0];
+            console.log('🔍 First item error:', itemError);
+            
+            // Look for stock_error in the item
+            if (itemError.stock_error) {
+              setMessage(`❌ ${itemError.stock_error}`);
+            } else if (typeof itemError === 'string') {
+              setMessage(`❌ ${itemError}`);
+            } else {
+              setMessage(`❌ Erreur de validation: ${JSON.stringify(itemError)}`);
+            }
+          } else {
+            setMessage(`❌ Erreur de validation: ${JSON.stringify(apiError.response.data.details)}`);
+          }
+        } else {
+          setMessage(`❌ Erreur API: ${apiError.message}`);
+        }
+      }
       
     } catch (error) {
       console.error('❌ Erreur lors de l\'enregistrement:', error);
+      
+      // Handle authentication errors
+      if (error.response?.status === 401) {
+        console.error('🔐 Authentication error in outer catch - redirecting to login');
+        setMessage('❌ Session expirée. Redirection vers la connexion...');
+        setTimeout(() => {
+          window.location.href = '/login?session_expired=true';
+        }, 1500);
+        return;
+      }
       
       let errorMessage = 'Erreur lors de l\'enregistrement de la vente';
       
       if (error.response?.data) {
         const errorData = error.response.data;
-        if (errorData.detail) {
+        if (errorData.stock_error) {
+          errorMessage = errorData.stock_error;
+        } else if (errorData.detail) {
           errorMessage = errorData.detail;
         } else if (errorData.error) {
           errorMessage = errorData.error;
         } else if (errorData.items) {
-          errorMessage = 'Erreur dans les articles de la vente';
+          // Check if any item has stock error
+          const stockError = errorData.items.find(item => item.stock_error);
+          if (stockError) {
+            errorMessage = stockError.stock_error;
+          } else {
+            errorMessage = 'Erreur dans les articles de la vente';
+          }
         }
       } else if (error.message) {
         errorMessage = error.message;
@@ -291,7 +531,9 @@ const WorkingSalesForm = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <ShoppingCart className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Nouvelle Vente</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isEditMode ? 'Modifier Vente' : 'Nouvelle Vente'}
+            </h1>
           </div>
           
           {/* Scanner Status */}
@@ -346,9 +588,22 @@ const WorkingSalesForm = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Selection */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Client *
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Client *
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCustomerModal(true)}
+              className="flex items-center space-x-1"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Nouveau Client</span>
+            </Button>
+          </div>
+          
           <select
             value={selectedCustomer}
             onChange={(e) => setSelectedCustomer(e.target.value)}
@@ -365,11 +620,12 @@ const WorkingSalesForm = () => {
                 {customer.name} 
                 {customer.phone !== 'N/A' && ` - ${customer.phone}`}
                 {customer.id === 'passage' ? ' (Par défaut)' : ''}
+                {Number(customer.balance || 0) > 0 && ` - Solde: ${Number(customer.balance || 0).toFixed(2)} MAD`}
               </option>
             ))}
           </select>
           
-          {/* Indicateur du type de client */}
+          {/* Customer Information Display */}
           <div className="mt-2">
             {selectedCustomer === 'passage' ? (
               <div className="flex items-center space-x-2 text-sm text-blue-600">
@@ -377,9 +633,27 @@ const WorkingSalesForm = () => {
                 <span>Vente au comptant - Aucune information client requise</span>
               </div>
             ) : selectedCustomer && (
-              <div className="flex items-center space-x-2 text-sm text-green-600">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span>Client régulier - Facture nominative</span>
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2 text-sm text-green-600">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span>Client régulier - Facture nominative</span>
+                </div>
+                {(() => {
+                  const customer = customers.find(c => c.id === selectedCustomer);
+                  if (customer && customer.balance > 0) {
+                    return (
+                      <div className="text-sm text-orange-600">
+                        <span className="font-medium">Solde en cours: {customer.balance.toFixed(2)} MAD</span>
+                        {Number(customer.credit_limit || 0) > 0 && (
+                          <span className="ml-2">
+                            (Limite: {Number(customer.credit_limit || 0).toFixed(2)} MAD)
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
           </div>
@@ -486,9 +760,41 @@ const WorkingSalesForm = () => {
             type="submit"
             disabled={loading}
             className="flex items-center space-x-2"
+            onClick={(e) => {
+              console.log('🖱️ Submit button clicked!', e);
+              console.log('Current form state:');
+              console.log('- Selected customer:', selectedCustomer);
+              console.log('- Sale items:', saleItems);
+              console.log('- Loading:', loading);
+              
+              // Check if form is valid
+              const validItems = saleItems.filter(item => item.medicine && item.quantity > 0);
+              console.log('- Valid items:', validItems);
+              
+              if (!selectedCustomer) {
+                console.log('❌ Validation failed: No customer selected');
+                alert('Aucun client sélectionné!');
+                e.preventDefault();
+                return false;
+              }
+              
+              if (validItems.length === 0) {
+                console.log('❌ Validation failed: No valid items');
+                alert('Aucun médicament valide!');
+                e.preventDefault();
+                return false;
+              }
+              
+              console.log('✅ Basic validation passed, form should submit');
+            }}
           >
             <Save className="h-4 w-4" />
-            <span>{loading ? 'Enregistrement...' : 'Enregistrer la vente'}</span>
+            <span>
+              {loading 
+                ? (isEditMode ? 'Mise à jour...' : 'Enregistrement...') 
+                : (isEditMode ? 'Mettre à jour la vente' : 'Enregistrer la vente')
+              }
+            </span>
           </Button>
           
           <Button
@@ -504,6 +810,13 @@ const WorkingSalesForm = () => {
           </Button>
         </div>
       </form>
+
+      {/* Customer Creation Modal */}
+      <SimpleCustomerCreateModal
+        isOpen={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        onCustomerCreated={handleCustomerCreated}
+      />
     </div>
   );
 };
