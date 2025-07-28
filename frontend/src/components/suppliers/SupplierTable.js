@@ -16,7 +16,11 @@ const SupplierTable = ({ suppliers, onView }) => (
         <tr key={supplier.id} className="hover:bg-gray-50">
           <td className="p-3 border border-gray-200">{supplier.name}</td>
           <td className="p-3 border border-gray-200">{supplier.contact_person}</td>
-          <td className="p-3 border border-gray-200 text-right">${supplier.current_balance.toFixed(2)}</td>
+          <td className="p-3 border border-gray-200 text-right">
+            {typeof supplier.current_balance === 'number' || !isNaN(Number(supplier.current_balance))
+              ? `DH ${(Number(supplier.current_balance) || 0).toFixed(2)}`
+              : 'N/A'}
+          </td>
           <td className="p-3 border border-gray-200 text-center">
             <Button size="sm" onClick={() => onView(supplier.id)}>
               View

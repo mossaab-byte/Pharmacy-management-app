@@ -8,21 +8,30 @@ import LoadingSpinner from '../../components/UI/LoadingSpinner';
 
 const SupplierListPage = () => {
   const [suppliers, setSuppliers] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { addNotification } = useNotification();
 
-  const fetchSuppliers = () => {
+  const fetchSuppliers = (params = {}) => {
     setLoading(true);
-    supplierService.getAll()
-      .then(data => setSuppliers(data))
+    supplierService.getAll({ page, page_size: pageSize, ...params })
+      .then(data => {
+        setSuppliers(Array.isArray(data.results) ? data.results : []);
+        setTotal(data.total || 0);
+        setPage(data.page || 1);
+        setPageSize(data.page_size || 25);
+      })
       .catch(() => addNotification({ type: 'error', message: 'Failed to load suppliers' }))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchSuppliers();
-  }, []);
+    // eslint-disable-next-line
+  }, [page, pageSize]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this supplier?')) return;

@@ -52,11 +52,13 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='full-inventory')
     def full_inventory(self, request):
         """
-        Returns all medicines, with inventory info if present for the user's pharmacy, or a flag if not.
+        Returns paginated medicines, with inventory info if present for the user's pharmacy, or a flag if not.
+        Supports ?search=...&page=...&page_size=...
         """
         from Medicine.models import Medicine
         from .models import PharmacyMedicine
         from .serializers import PharmacyMedicineSerializer
+        from rest_framework.pagination import PageNumberPagination
         user = request.user
         # Determine pharmacy
         pharmacy = None
@@ -73,10 +75,29 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
         if not pharmacy:
             return Response({'error': 'No pharmacy found for user.'}, status=400)
 
-        medicines = Medicine.objects.all().order_by('nom')
+        # Search support
+        search = request.query_params.get('search', '').strip().lower()
+        medicines_qs = Medicine.objects.all()
+        if search:
+            medicines_qs = medicines_qs.filter(
+                models.Q(nom__icontains=search) | models.Q(code__icontains=search)
+            )
+
+        # Sorting support
+        sort_by = request.query_params.get('sort_by', 'nom')
+        sort_dir = request.query_params.get('sort_dir', 'asc')
+        if sort_by == 'quantity' or sort_by == 'status':
+            # We'll sort after joining with inventory below
+            pass
+        else:
+            if sort_dir == 'desc':
+                sort_by = f'-{sort_by}'
+            medicines_qs = medicines_qs.order_by(sort_by)
+
+        # Inventory map for all medicines in this pharmacy
         inventory_map = {pm.medicine_id: pm for pm in PharmacyMedicine.objects.filter(pharmacy=pharmacy)}
         result = []
-        for med in medicines:
+        for med in medicines_qs:
             pm = inventory_map.get(med.id)
             if pm:
                 data = PharmacyMedicineSerializer(pm).data
@@ -92,7 +113,35 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
                     'pharmacy': pharmacy.id,
                 }
             result.append(data)
-        return Response(result)
+
+        # Status filtering
+        status_filter = request.query_params.get('status')
+        if status_filter == 'in_stock':
+            result = [r for r in result if r['in_inventory'] and r['quantity'] > (r.get('minimum_stock_level') or 10)]
+        elif status_filter == 'low_stock':
+            result = [r for r in result if r['in_inventory'] and r['quantity'] <= (r.get('minimum_stock_level') or 10) and r['quantity'] > 0]
+        elif status_filter == 'not_in_inventory':
+            result = [r for r in result if not r['in_inventory']]
+
+        # Sorting by quantity or status
+        if sort_by == 'quantity':
+            result = sorted(result, key=lambda r: r['quantity'], reverse=(sort_dir == 'desc'))
+        elif sort_by == 'status':
+            def status_rank(r):
+                if not r['in_inventory']:
+                    return 0
+                elif r['quantity'] <= (r.get('minimum_stock_level') or 10):
+                    return 1
+                else:
+                    return 2
+            result = sorted(result, key=status_rank, reverse=(sort_dir == 'desc'))
+
+        # Pagination
+        paginator = PageNumberPagination()
+        paginator.page_size_query_param = 'page_size'
+        paginator.page_size = int(request.query_params.get('page_size', 20))
+        page = paginator.paginate_queryset(result, request)
+        return paginator.get_paginated_response(page)
     serializer_class = PharmacyMedicineSerializer
     permission_classes = [IsAuthenticated]
 

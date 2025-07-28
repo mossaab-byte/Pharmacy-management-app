@@ -8,9 +8,38 @@ from .permissions import *
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 class SupplierViewSet(viewsets.ModelViewSet):
+
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
     permission_classes = [permissions.IsAuthenticated, CanManageSupplier]
+
+    def get_queryset(self):
+        queryset = Supplier.objects.all()
+        search = self.request.query_params.get('search')
+        sort_by = self.request.query_params.get('sort_by', 'name')
+        sort_dir = self.request.query_params.get('sort_dir', 'asc')
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        if sort_by:
+            if sort_dir == 'desc':
+                sort_by = f'-{sort_by}'
+            queryset = queryset.order_by(sort_by)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 25))
+        total = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        serializer = self.get_serializer(queryset[start:end], many=True)
+        return Response({
+            'results': serializer.data,
+            'total': total,
+            'page': page,
+            'page_size': page_size
+        })
 
     @action(detail=True, methods=['get'])
     def transactions(self, request, pk=None):
@@ -42,24 +71,55 @@ class SupplierViewSet(viewsets.ModelViewSet):
    
     
 class PurchaseViewSet(viewsets.ModelViewSet):
+
     queryset = Purchase.objects.all()
     serializer_class = PurchaseSerializer
     permission_classes = [permissions.IsAuthenticated, CanModifyPurchases, CanDeletePurchases]
 
     def get_queryset(self):
         user = self.request.user
-        
-        # For basic pharmacists, allow access to all purchases
+        queryset = Purchase.objects.all()
+        # Restrict by pharmacy if needed
         if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
             if hasattr(user, 'pharmacy') and user.pharmacy:
-                return Purchase.objects.filter(pharmacy=user.pharmacy)
-            else:
-                # Basic pharmacist - return all purchases for now
-                return Purchase.objects.all()
-        
-        if hasattr(user, 'pharmacy'):
-            return Purchase.objects.filter(pharmacy=user.pharmacy)
-        return Purchase.objects.none()
+                queryset = queryset.filter(pharmacy=user.pharmacy)
+        elif hasattr(user, 'pharmacy'):
+            queryset = queryset.filter(pharmacy=user.pharmacy)
+
+        # Filtering
+        search = self.request.query_params.get('search')
+        supplier = self.request.query_params.get('supplier')
+        status = self.request.query_params.get('status')
+        if search:
+            queryset = queryset.filter(supplier__name__icontains=search)
+        if supplier:
+            queryset = queryset.filter(supplier_id=supplier)
+        if status:
+            queryset = queryset.filter(status=status)
+
+        # Sorting
+        sort_by = self.request.query_params.get('sort_by', 'created_at')
+        sort_dir = self.request.query_params.get('sort_dir', 'desc')
+        if sort_by:
+            if sort_dir == 'desc':
+                sort_by = f'-{sort_by}'
+            queryset = queryset.order_by(sort_by)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 25))
+        total = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        serializer = self.get_serializer(queryset[start:end], many=True)
+        return Response({
+            'results': serializer.data,
+            'total': total,
+            'page': page,
+            'page_size': page_size
+        })
 
     def perform_create(self, serializer):
         serializer.save(received_by=self.request.user)

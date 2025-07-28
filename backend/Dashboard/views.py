@@ -44,14 +44,18 @@ class KpisView(APIView):
             )
             # Static KPIs
             total_customers = Customer.objects.count()
-            # Sum of all stock quantities for medicines with stock > 0
-            total_medicines = PharmacyMedicine.objects.filter(quantity__gt=0).aggregate(total=Sum('quantity'))['total'] or 0
+            total_sales = Sale.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+            total_purchases = Purchase.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+            # Sum of all stock quantities for all medicines (even if 0)
+            total_medicines = PharmacyMedicine.objects.aggregate(total=Sum('quantity'))['total'] or 0
             # Compose response
             data = {
                 "salesMonthly": list(sales_monthly),
                 "purchasesMonthly": list(purchases_monthly),
                 "totalCustomers": total_customers,
                 "totalMedicines": total_medicines,
+                "totalSales": float(total_sales),
+                "totalPurchases": float(total_purchases),
             }
             return Response(data)
         except Exception as e:

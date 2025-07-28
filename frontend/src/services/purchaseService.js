@@ -1,22 +1,7 @@
 import { apiClient } from './apiClient';
 
 const purchaseService = {
-  getAll: async () => {
-    try {
-      const response = await apiClient.get('/purchases/purchases/');
-      let purchases = [];
-      if (Array.isArray(response.data)) {
-        purchases = response.data;
-      } else if (response.data && Array.isArray(response.data.results)) {
-        purchases = response.data.results;
-      }
-      console.log(`✅ Loaded ${purchases.length} purchases from backend`);
-      return purchases;
-    } catch (error) {
-      console.error('❌ Error fetching purchases:', error);
-      throw new Error(`Failed to fetch purchases: ${error.response?.data?.detail || error.message}`);
-    }
-  },
+  // ...other methods...
 
   getById: async (id) => {
     try {
@@ -63,14 +48,24 @@ const purchaseService = {
   },
 
   // Get purchase statistics
-  getStats: async () => {
+
+  getAll: async (params = {}) => {
     try {
-      const response = await apiClient.get('/purchases/purchases/statistics/');
-      console.log('Purchase statistics loaded successfully');
-      return response.data;
+      const response = await apiClient.get('/purchases/purchases/', { params });
+      // Always return the paginated response structure
+      if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+        return response.data;
+      }
+      // Fallback for legacy responses
+      return {
+        results: Array.isArray(response.data) ? response.data : [],
+        total: Array.isArray(response.data) ? response.data.length : 0,
+        page: 1,
+        page_size: Array.isArray(response.data) ? response.data.length : 0
+      };
     } catch (error) {
-      console.error('Error fetching purchase stats:', error);
-      throw new Error(`Failed to fetch purchase statistics: ${error.response?.data?.detail || error.message}`);
+      console.error('Error fetching purchases:', error);
+      throw new Error(`Failed to fetch purchases: ${error.response?.data?.detail || error.message}`);
     }
   }
 };

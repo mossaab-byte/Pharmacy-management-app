@@ -1,18 +1,21 @@
 import { apiClient } from './apiClient';
 
 const supplierService = {
-  getAll: async () => {
+
+  getAll: async (params = {}) => {
     try {
-      const response = await apiClient.get('/purchases/suppliers/');
-      // Handle paginated response
-      let suppliers = [];
-      if (Array.isArray(response.data)) {
-        suppliers = response.data;
-      } else if (response.data && Array.isArray(response.data.results)) {
-        suppliers = response.data.results;
+      const response = await apiClient.get('/purchases/suppliers/', { params });
+      // Always return the paginated response structure
+      if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+        return response.data;
       }
-      console.log('Suppliers loaded successfully:', suppliers.length, 'suppliers');
-      return suppliers;
+      // Fallback for legacy responses
+      return {
+        results: Array.isArray(response.data) ? response.data : [],
+        total: Array.isArray(response.data) ? response.data.length : 0,
+        page: 1,
+        page_size: Array.isArray(response.data) ? response.data.length : 0
+      };
     } catch (error) {
       console.error('Error fetching suppliers:', error);
       throw new Error(`Failed to fetch suppliers: ${error.response?.data?.detail || error.message}`);

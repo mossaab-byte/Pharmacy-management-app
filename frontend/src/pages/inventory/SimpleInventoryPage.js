@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Package, Plus, Minus, AlertTriangle, Search, History, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/UI';
 import inventoryService from '../../services/inventoryService';
 
 const SimpleInventoryPage = () => {
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [statusFilter, setStatusFilter] = useState(null); // 'in_stock', 'low_stock', 'not_in_inventory', or null
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,6 +27,10 @@ const SimpleInventoryPage = () => {
     type: 'add'
   });
   const [debugInfo, setDebugInfo] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const searchTimeout = useRef();
 
   const addDebug = (message) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -23,39 +38,35 @@ const SimpleInventoryPage = () => {
     console.log(`📦 ${timestamp}: ${message}`);
   };
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (params = {}) => {
     try {
       setLoading(true);
       addDebug('Fetching inventory...');
-      
-      const response = await inventoryService.getInventory();
+      const response = await inventoryService.getInventory({
+        page,
+        page_size: pageSize,
+        search: searchTerm,
+        sort_by: sortKey,
+        sort_dir: sortDirection,
+        status: statusFilter,
+        ...params
+      });
       addDebug(`Raw response: ${JSON.stringify(response.data).substring(0, 100)}...`);
-      
       let inventoryData = [];
-      
-      if (Array.isArray(response.data)) {
-        inventoryData = response.data;
-        addDebug(`Data is array with ${inventoryData.length} items`);
-      } else if (response.data && Array.isArray(response.data.results)) {
+      if (Array.isArray(response.data.results)) {
         inventoryData = response.data.results;
-        addDebug(`Data has results array with ${inventoryData.length} items`);
+        setTotalCount(response.data.count || 0);
+      } else if (Array.isArray(response.data)) {
+        inventoryData = response.data;
+        setTotalCount(inventoryData.length);
       } else {
         addDebug(`Unexpected data structure: ${typeof response.data}`);
-        console.log('Full response data:', response.data);
+        setTotalCount(0);
       }
-      
-      addDebug(`Setting inventory state with ${inventoryData.length} items`);
-      
-      if (inventoryData.length > 0) {
-        addDebug(`First item: ${JSON.stringify(inventoryData[0]).substring(0, 100)}...`);
-      }
-      
       setInventory(inventoryData);
       setError(null);
-      
     } catch (error) {
       addDebug(`Error loading inventory: ${error.message}`);
-      console.error('Full error:', error);
       setError(`Failed to load inventory: ${error.message}`);
     } finally {
       setLoading(false);
@@ -116,37 +127,22 @@ const SimpleInventoryPage = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, []);
+    // eslint-disable-next-line
+  }, [page, pageSize, sortKey, sortDirection, statusFilter]);
 
-  const filteredInventory = inventory.filter(item => {
-    try {
-      if (!item) {
-        console.log('🚨 Filter Debug: Item is null/undefined');
-        return false;
-      }
-      
-      if (!item.medicine) {
-        console.log('� Filter Debug: Item has no medicine property:', item);
-        return false;
-      }
-      
-      // If no search term, show all items
-      if (!searchTerm || searchTerm.trim() === '') {
-        return true;
-      }
-      
-      const medicineName = (item.medicine.nom || '').toLowerCase();
-      const medicineCode = (item.medicine.code || '').toLowerCase();
-      const searchLower = searchTerm.toLowerCase().trim();
-      
-      const matches = medicineName.includes(searchLower) || medicineCode.includes(searchLower);
-      
-      return matches;
-    } catch (error) {
-      console.error('🚨 Filter error for item:', item, error);
-      return false;
-    }
-  });
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setPage(1);
+      fetchInventory({ page: 1 });
+    }, 400);
+    return () => clearTimeout(searchTimeout.current);
+    // eslint-disable-next-line
+  }, [searchTerm]);
+
+  // No more client-side filtering or sorting; backend handles it
+  const filteredInventory = inventory;
 
   // Add debug for render state
   useEffect(() => {
@@ -259,8 +255,14 @@ const SimpleInventoryPage = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Medicine
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                      onClick={() => handleSort('quantity')}
+                    >
                       Current Stock
+                      {sortKey === 'quantity' && (
+                        <span className="ml-1">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                      )}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Min. Level
@@ -268,8 +270,26 @@ const SimpleInventoryPage = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Price
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    >
+                      <span onClick={() => handleSort('status')}>
+                        Status
+                        {sortKey === 'status' && (
+                          <span className="ml-1">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </span>
+                      <select
+                        className="ml-2 border rounded text-xs px-1 py-0.5"
+                        value={statusFilter || ''}
+                        onChange={e => { setStatusFilter(e.target.value || null); setPage(1); }}
+                        style={{ minWidth: 90 }}
+                      >
+                        <option value="">All</option>
+                        <option value="in_stock">In Stock</option>
+                        <option value="low_stock">Low Stock</option>
+                        <option value="not_in_inventory">Not in Inventory</option>
+                      </select>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -295,9 +315,24 @@ const SimpleInventoryPage = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
-                          {item.minimum_stock_level || 10}
-                        </div>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.minimum_stock_level || 10}
+                          onChange={async (e) => {
+                            const newValue = parseInt(e.target.value);
+                            if (!item.id) return;
+                            setInventory((prev) => prev.map((row) => row.id === item.id ? { ...row, minimum_stock_level: newValue } : row));
+                            try {
+                              await inventoryService.updateStock({ id: item.id, minimum_stock_level: newValue });
+                              addDebug(`Min stock level updated for ${item.medicine_name}`);
+                            } catch (err) {
+                              addDebug(`Failed to update min stock: ${err.message}`);
+                            }
+                          }}
+                          className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                          style={{ textAlign: 'center' }}
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">

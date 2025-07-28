@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { LoadingSpinner } from '../../components/UI';
@@ -15,49 +15,22 @@ import {
   Plus,
   RefreshCw
 } from 'lucide-react';
-import dashboardService from '../../services/dashboardService';
+import { useDashboard } from '../../context/DashboardContext';
 
 const DashboardStable = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    totalSales: 0,
-    totalPurchases: 0,
-    totalCustomers: 0,
-    totalMedicines: 0,
-    recentSales: [],
-    recentPurchases: [],
-    lowStockItems: []
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await dashboardService.getStats();
-      // Ensure we have safe data
-      const safeStats = {
-        totalSales: response?.totalSales || 0,
-        totalPurchases: response?.totalPurchases || 0,
-        totalCustomers: response?.totalCustomers || 0,
-        totalMedicines: response?.totalMedicines || 0,
-        recentSales: Array.isArray(response?.recentSales) ? response.recentSales : [],
-        recentPurchases: Array.isArray(response?.recentPurchases) ? response.recentPurchases : [],
-        lowStockItems: Array.isArray(response?.lowStockItems) ? response.lowStockItems : []
-      };
-      setStats(safeStats);
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const { dashboardData, loading, error, refreshData } = useDashboard();
+  // Fallbacks for stats if not loaded yet
+  const stats = {
+    totalSales: dashboardData?.totalSales || 0,
+    totalPurchases: dashboardData?.totalPurchases || 0,
+    totalCustomers: dashboardData?.totalCustomers || 0,
+    totalMedicines: dashboardData?.totalMedicines || 0,
+    salesMonthly: dashboardData?.salesMonthly || [],
+    recentSales: Array.isArray(dashboardData?.recentSales) ? dashboardData.recentSales : [],
+    recentPurchases: Array.isArray(dashboardData?.recentPurchases) ? dashboardData.recentPurchases : [],
+    lowStockItems: Array.isArray(dashboardData?.lowStockItems) ? dashboardData.lowStockItems : []
   };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
 
   const formatCurrency = (amount) => {
     if (typeof amount !== 'number' || isNaN(amount)) return '0.00 DH';
@@ -81,11 +54,7 @@ const DashboardStable = () => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">
-              {Array.isArray(stats.salesMonthly) && stats.salesMonthly.length > 0
-                ? `${stats.salesMonthly.reduce((sum, m) => sum + (typeof m.total === 'number' ? m.total : 0), 0).toFixed(2)} DH`
-                : formatCurrency(stats.totalSales)}
-          </p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
         </div>
         <div className={`p-3 rounded-full ${color}`}>
           <Icon className="w-6 h-6 text-white" />
@@ -223,7 +192,7 @@ const DashboardStable = () => {
           </div>
           <Button
             variant="outline"
-            onClick={fetchDashboardData}
+            onClick={refreshData}
             disabled={loading}
             className="flex items-center gap-2"
           >
@@ -260,37 +229,37 @@ const DashboardStable = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
-                title="Total Sales"
-                value={(() => {
-                  // Try to use salesMonthly from backend if available
-                  if (typeof stats.salesMonthly !== 'undefined' && Array.isArray(stats.salesMonthly) && stats.salesMonthly.length > 0) {
-                    const sum = stats.salesMonthly.reduce((acc, m) => acc + (typeof m.total === 'number' ? m.total : 0), 0);
-                    return formatCurrency(sum);
-                  }
-                  // Fallback to totalSales
-                  return formatCurrency(stats.totalSales);
-                })()}
+                title="Total Sales (Monthly)"
+                value={formatCurrency(
+                  Array.isArray(stats.salesMonthly) && stats.salesMonthly.length > 0
+                    ? stats.salesMonthly.reduce((sum, m) => sum + (typeof m.total === 'number' ? m.total : 0), 0)
+                    : 0
+                )}
                 icon={DollarSign}
                 color="bg-green-500"
                 onClick={() => navigate('/sales')}
               />
               <StatCard
-                title="Total Purchases"
-                value={formatCurrency(stats.totalPurchases)}
+                title="Total Purchases (Monthly)"
+                value={formatCurrency(
+                  Array.isArray(stats.purchasesMonthly) && stats.purchasesMonthly.length > 0
+                    ? stats.purchasesMonthly.reduce((sum, m) => sum + (typeof m.total === 'number' ? m.total : 0), 0)
+                    : 0
+                )}
                 icon={ShoppingCart}
                 color="bg-blue-500"
                 onClick={() => navigate('/purchases')}
               />
               <StatCard
                 title="Total Customers"
-                value={stats.totalCustomers.toLocaleString()}
+                value={Number.isFinite(stats.totalCustomers) ? stats.totalCustomers.toLocaleString() : '0'}
                 icon={Users}
                 color="bg-purple-500"
                 onClick={() => navigate('/customers')}
               />
               <StatCard
                 title="Total Medicines"
-                value={stats.totalMedicines.toLocaleString()}
+                value={Number.isFinite(stats.totalMedicines) ? stats.totalMedicines.toLocaleString() : '0'}
                 icon={Package}
                 color="bg-orange-500"
                 onClick={() => navigate('/medicines')}

@@ -201,42 +201,7 @@ def create_mock_data():
         date_exp=date.today() + timedelta(days=300)
     )
 
-    # Create Suppliers
-    supplier1 = Supplier.objects.create(
-        name='MedSupply Co.',
-        credit_amount=0
-    )
-
-    supplier2 = Supplier.objects.create(
-        name='PharmaDistro Ltd.',
-        credit_amount=0
-    )
-
-    # Create Purchases
-    purchase1 = Purchase.objects.create(
-        user=pharmacist1,
-        pharmacy=pharmacy1,
-        supplier=supplier1,
-        num_BL=1001,
-        total=0,
-        amount_paid=150.00,
-        status='completed'
-    )
-
-    # Create Purchase Items
-    item1 = PurchaseItem.objects.create(
-        purchase=purchase1,
-        medicine=med1,
-        quantity=50,
-        price=3.00
-    )
-
-    item2 = PurchaseItem.objects.create(
-        purchase=purchase1,
-        medicine=med2,
-        quantity=30,
-        price=4.50
-    )
+    # (Removed mock supplier and purchase creation. Only real user data will be present.)
 
     # Update purchase total
     purchase1.total = item1.quantity * item1.price + item2.quantity * item2.price
