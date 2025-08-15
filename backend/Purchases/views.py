@@ -43,21 +43,40 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def transactions(self, request, pk=None):
-        transactions = SupplierTransaction.objects.filter(supplier_id=pk)
+        user = request.user
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            transactions = SupplierTransaction.objects.filter(
+                supplier_id=pk,
+                pharmacy=user.pharmacy
+            )
+        else:
+            transactions = SupplierTransaction.objects.none()
         serializer = SupplierTransactionSerializer(transactions, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def purchases(self, request, pk=None):
-        purchases = Purchase.objects.filter(supplier_id=pk)
+        user = request.user
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            purchases = Purchase.objects.filter(
+                supplier_id=pk,
+                pharmacy=user.pharmacy
+            )
+        else:
+            purchases = Purchase.objects.none()
         serializer = PurchaseSerializer(purchases, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def products(self, request, pk=None):
-        medicine_ids = PurchaseItem.objects.filter(
-            purchase__supplier_id=pk
-        ).values_list('medicine_id', flat=True).distinct()
+        user = request.user
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            medicine_ids = PurchaseItem.objects.filter(
+                purchase__supplier_id=pk,
+                purchase__pharmacy=user.pharmacy
+            ).values_list('medicine_id', flat=True).distinct()
+        else:
+            medicine_ids = []
         from Medicine.models import Medicine
         medicines = Medicine.objects.filter(id__in=medicine_ids)
         data = [{'id': m.id, 'name': m.name} for m in medicines]

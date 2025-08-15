@@ -78,6 +78,11 @@ const supplierService = {
     }
   },
 
+  // Alias for remove
+  remove: async (id) => {
+    return supplierService.delete(id);
+  },
+
   // Méthode pour ajuster le solde du fournisseur
   adjustBalance: async (id, payload) => {
     try {

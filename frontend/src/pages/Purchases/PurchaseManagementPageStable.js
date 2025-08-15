@@ -12,27 +12,46 @@ const PurchaseManagementPageStable = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortDir, setSortDir] = useState('desc');
+  const [status, setStatus] = useState('');
+  const [supplier, setSupplier] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [total, setTotal] = useState(0);
   const [deletingId, setDeletingId] = useState(null);
 
-  const fetchPurchases = async () => {
+  const fetchPurchases = async (params = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await purchaseService.getAll();
-      // Ensure we always have an array
-      let purchaseData = [];
-      if (Array.isArray(response)) {
-        purchaseData = response;
-      } else if (response && Array.isArray(response.data)) {
-        purchaseData = response.data;
-      } else if (response && Array.isArray(response.results)) {
-        purchaseData = response.results;
+      const queryParams = {
+        search: searchTerm,
+        sort_by: sortBy,
+        sort_dir: sortDir,
+        status: status,
+        supplier: supplier,
+        page: page,
+        page_size: pageSize,
+        ...params
+      };
+      
+      const response = await purchaseService.getAll(queryParams);
+      
+      if (response && response.results) {
+        setPurchases(response.results);
+        setTotal(response.total || 0);
+        setPage(response.page || 1);
+        setPageSize(response.page_size || 25);
+      } else {
+        setPurchases([]);
+        setTotal(0);
       }
-      setPurchases(purchaseData);
     } catch (err) {
       console.error('Error fetching purchases:', err);
       setError('Failed to load purchases. Please try again.');
       setPurchases([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -40,7 +59,35 @@ const PurchaseManagementPageStable = () => {
 
   useEffect(() => {
     fetchPurchases();
-  }, []);
+  }, [searchTerm, sortBy, sortDir, status, supplier, page, pageSize]);
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setPage(1); // Reset to first page when searching
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+    setPage(1);
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    if (filterType === 'status') {
+      setStatus(value);
+    } else if (filterType === 'supplier') {
+      setSupplier(value);
+    }
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
 
   const handleDelete = async (id) => {
     if (!id) return;
@@ -49,7 +96,8 @@ const PurchaseManagementPageStable = () => {
     setDeletingId(id);
     try {
       await purchaseService.remove(id);
-      setPurchases(prev => prev.filter(p => p.id !== id));
+      // Refresh the list after deletion
+      fetchPurchases();
     } catch (err) {
       console.error('Error deleting purchase:', err);
       setError('Failed to delete purchase. Please try again.');
@@ -70,15 +118,8 @@ const PurchaseManagementPageStable = () => {
     }
   };
 
-  const filteredPurchases = purchases.filter(purchase => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      (purchase?.supplier_name || '').toLowerCase().includes(search) ||
-      (purchase?.date || '').toLowerCase().includes(search) ||
-      (purchase?.status || '').toLowerCase().includes(search)
-    );
-  });
+  // Remove frontend filtering since we now use backend filtering
+  const displayedPurchases = purchases;
 
   const formatCurrency = (amount) => {
     if (typeof amount !== 'number' || isNaN(amount)) return '0.00 DH';
@@ -141,21 +182,59 @@ const PurchaseManagementPageStable = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-6 flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search purchases..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+        <div className="mb-6 space-y-4">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search purchases by supplier name..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <select
+              value={status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="draft">Draft</option>
+            </select>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            Filter
-          </Button>
+          
+          {/* Results summary */}
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <span>
+              Showing {purchases.length} of {total} purchases
+              {searchTerm && ` matching "${searchTerm}"`}
+              {status && ` with status "${status}"`}
+            </span>
+            <div className="flex items-center gap-2">
+              <span>Sort by:</span>
+              <select
+                value={`${sortBy}-${sortDir}`}
+                onChange={(e) => {
+                  const [field, direction] = e.target.value.split('-');
+                  setSortBy(field);
+                  setSortDir(direction);
+                  setPage(1);
+                }}
+                className="px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value="created_at-desc">Date (Newest)</option>
+                <option value="created_at-asc">Date (Oldest)</option>
+                <option value="total_amount-desc">Amount (High to Low)</option>
+                <option value="total_amount-asc">Amount (Low to High)</option>
+                <option value="supplier__name-asc">Supplier (A-Z)</option>
+                <option value="supplier__name-desc">Supplier (Z-A)</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -208,14 +287,14 @@ const PurchaseManagementPageStable = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredPurchases.length === 0 ? (
+                  {displayedPurchases.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                        {purchases.length === 0 ? 'No purchases found' : 'No purchases match your search'}
+                        {total === 0 ? 'No purchases found' : 'No purchases match your filters'}
                       </td>
                     </tr>
                   ) : (
-                    filteredPurchases.map((purchase) => (
+                    displayedPurchases.map((purchase) => (
                       <tr key={purchase?.id || Math.random()} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(purchase?.date)}
@@ -271,15 +350,60 @@ const PurchaseManagementPageStable = () => {
           </div>
         )}
 
-        {/* Summary */}
-        {filteredPurchases.length > 0 && (
-          <div className="mt-6 flex justify-between items-center text-sm text-gray-600">
-            <div>
-              Showing {filteredPurchases.length} of {purchases.length} purchases
+        {/* Pagination and Summary */}
+        {displayedPurchases.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {/* Summary */}
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <div>
+                Total value: {formatCurrency(displayedPurchases.reduce((sum, p) => sum + (p?.total_amount || 0), 0))}
+              </div>
+              <div>
+                Page {page} of {Math.ceil(total / pageSize)} • {total} total purchases
+              </div>
             </div>
-            <div>
-              Total value: {formatCurrency(filteredPurchases.reduce((sum, p) => sum + (p?.total || 0), 0))}
-            </div>
+
+            {/* Pagination Controls */}
+            {Math.ceil(total / pageSize) > 1 && (
+              <div className="flex justify-center items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1}
+                >
+                  Previous
+                </Button>
+                
+                {/* Page numbers */}
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, Math.ceil(total / pageSize)) }, (_, i) => {
+                    const pageNum = Math.max(1, page - 2) + i;
+                    if (pageNum > Math.ceil(total / pageSize)) return null;
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pageNum === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= Math.ceil(total / pageSize)}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
