@@ -1,6 +1,7 @@
 # sales/serializers.py
 from rest_framework import serializers
 from django.db import transaction
+from django.db import models
 from .models import Customer, Sale, SaleItem, Payment
 from Pharmacy.models import PharmacyMedicine
 from django.contrib.auth import get_user_model
@@ -245,23 +246,82 @@ class CustomerSerializer(serializers.ModelSerializer):
     total_purchases = serializers.SerializerMethodField()
     def get_balance(self, obj):
         try:
-            return float(obj.balance or 0)
+            # Get current user's pharmacy from context
+            request = self.context.get('request')
+            if request and hasattr(request.user, 'pharmacy') and request.user.pharmacy:
+                pharmacy = request.user.pharmacy
+                
+                # Calculate balance only for sales at this pharmacy
+                from decimal import Decimal
+                total_sales = Sale.objects.filter(
+                    customer=obj, 
+                    pharmacy=pharmacy
+                ).aggregate(total=models.Sum('total_amount'))['total'] or Decimal('0.00')
+                
+                total_payments = Payment.objects.filter(
+                    sale__customer=obj,
+                    sale__pharmacy=pharmacy
+                ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+                
+                return float(total_sales - total_payments)
+            return 0.0
         except Exception:
             return 0.0
 
     def get_available_credit(self, obj):
         try:
-            return float(obj.available_credit or 0)
+            # Calculate available credit based on pharmacy-specific balance
+            balance = self.get_balance(obj)
+            return float(obj.credit_limit - balance)
         except Exception:
             return 0.0
 
     def get_total_purchases(self, obj):
         try:
-            return float(obj.total_purchases or 0)
+            # Get current user's pharmacy from context
+            request = self.context.get('request')
+            if request and hasattr(request.user, 'pharmacy') and request.user.pharmacy:
+                pharmacy = request.user.pharmacy
+                
+                # Calculate total purchases only for this pharmacy
+                from decimal import Decimal
+                total = Sale.objects.filter(
+                    customer=obj,
+                    pharmacy=pharmacy
+                ).aggregate(total=models.Sum('total_amount'))['total'] or Decimal('0.00')
+                
+                return float(total)
+            return 0.0
         except Exception:
             return 0.0
-    sales_count = serializers.IntegerField(read_only=True)
-    last_purchase_date = serializers.DateTimeField(read_only=True)
+    sales_count = serializers.SerializerMethodField()
+    last_purchase_date = serializers.SerializerMethodField()
+    
+    def get_sales_count(self, obj):
+        try:
+            # Get current user's pharmacy from context
+            request = self.context.get('request')
+            if request and hasattr(request.user, 'pharmacy') and request.user.pharmacy:
+                pharmacy = request.user.pharmacy
+                return Sale.objects.filter(customer=obj, pharmacy=pharmacy).count()
+            return 0
+        except Exception:
+            return 0
+    
+    def get_last_purchase_date(self, obj):
+        try:
+            # Get current user's pharmacy from context
+            request = self.context.get('request')
+            if request and hasattr(request.user, 'pharmacy') and request.user.pharmacy:
+                pharmacy = request.user.pharmacy
+                last_sale = Sale.objects.filter(
+                    customer=obj, 
+                    pharmacy=pharmacy
+                ).order_by('-created_at').first()
+                return last_sale.created_at if last_sale else None
+            return None
+        except Exception:
+            return None
     full_name = serializers.SerializerMethodField()
     
     # Fields for creating customer with user

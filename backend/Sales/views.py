@@ -10,13 +10,17 @@ from rest_framework import filters
 
 
 class SalesViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.AllowAny]  # Temporarily allow any access for testing
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
         
-        # Return all sales for now during testing
-        return Sale.objects.all().order_by('-created_at')
+        # Filter sales by user's pharmacy for proper data isolation
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            return Sale.objects.filter(pharmacy=user.pharmacy).order_by('-created_at')
+        
+        # If user has no pharmacy, return empty queryset
+        return Sale.objects.none()
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -39,24 +43,18 @@ class SalesViewSet(viewsets.ModelViewSet):
             raise
 
     def perform_create(self, serializer):
-        # Debug: Print the request data
-        print("🔍 DEBUG: Request data received:", self.request.data)
-        print("🔍 DEBUG: User:", self.request.user)
-        print("🔍 DEBUG: User authenticated:", self.request.user.is_authenticated)
+        # Ensure sale is created for the user's pharmacy
+        user = self.request.user
         
-        # For testing, allow creation without any user/pharmacy requirements
-        # Just save the basic sale without additional fields
-        
-        print("🔍 DEBUG: About to save sale...")
-        
-        try:
-            # Save without served_by and pharmacy for now
-            sale = serializer.save()
-            print("✅ DEBUG: Sale created successfully with ID:", sale.id)
-        except Exception as e:
-            print(f"❌ DEBUG: Error creating sale: {str(e)}")
-            print(f"❌ DEBUG: Error type: {type(e)}")
-            raise
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            sale = serializer.save(
+                served_by=user,
+                pharmacy=user.pharmacy
+            )
+            print("✅ Sale created successfully with proper pharmacy isolation:", sale.id)
+        else:
+            print("❌ User has no pharmacy - cannot create sale")
+            raise ValueError("User must be associated with a pharmacy to create sales")
 
 class PharmacySalesListAPIView(generics.ListAPIView):
     serializer_class = SaleSerializer
@@ -90,13 +88,17 @@ class CustomerViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
-        # For basic pharmacists, allow access to all customers
-        if hasattr(user, 'is_pharmacist') and user.is_pharmacist:
-            return Customer.objects.all().select_related('user')
+        # Filter customers based on sales from this pharmacy only
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            # Get customers who have made purchases at this pharmacy
+            customer_ids = Sale.objects.filter(
+                pharmacy=user.pharmacy
+            ).values_list('customer_id', flat=True).distinct()
+            
+            return Customer.objects.filter(
+                id__in=customer_ids
+            ).select_related('user')
         
-        if hasattr(user, 'pharmacy'):
-            # Return all customers - they're not directly linked to pharmacy
-            return Customer.objects.all().select_related('user')
         return Customer.objects.none()
 
     def perform_create(self, serializer):
@@ -107,7 +109,19 @@ class CustomerDetailView(generics.RetrieveAPIView):
     lookup_field = 'id'
     
     def get_queryset(self):
-        return Customer.objects.select_related('user')
+        user = self.request.user
+        
+        # Only allow access to customers who have made purchases at this pharmacy
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            customer_ids = Sale.objects.filter(
+                pharmacy=user.pharmacy
+            ).values_list('customer_id', flat=True).distinct()
+            
+            return Customer.objects.filter(
+                id__in=customer_ids
+            ).select_related('user')
+        
+        return Customer.objects.none()
 
 class CustomerSalesListView(generics.ListAPIView):
     serializer_class = SaleSerializer
@@ -115,10 +129,16 @@ class CustomerSalesListView(generics.ListAPIView):
     
     def get_queryset(self):
         customer_id = self.kwargs['customer_id']
-        customer = get_object_or_404(Customer, id=customer_id)
-        return Sale.objects.filter(customer=customer).select_related(
-            'served_by', 'pharmacy'
-        ).prefetch_related('items')
+        user = self.request.user
+        
+        # Only return sales for this customer that belong to the current user's pharmacy
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            return Sale.objects.filter(
+                customer_id=customer_id,
+                pharmacy=user.pharmacy
+            ).select_related('served_by', 'pharmacy').prefetch_related('items')
+        
+        return Sale.objects.none()
 
 class CustomerPaymentsListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
@@ -126,10 +146,16 @@ class CustomerPaymentsListView(generics.ListAPIView):
     
     def get_queryset(self):
         customer_id = self.kwargs['customer_id']
-        customer = get_object_or_404(Customer, id=customer_id)
-        return Payment.objects.filter(sale__customer=customer).select_related(
-            'sale', 'sale__served_by'
-        )
+        user = self.request.user
+        
+        # Only return payments for sales that belong to the current user's pharmacy
+        if hasattr(user, 'pharmacy') and user.pharmacy:
+            return Payment.objects.filter(
+                sale__customer_id=customer_id,
+                sale__pharmacy=user.pharmacy
+            ).select_related('sale', 'sale__served_by')
+        
+        return Payment.objects.none()
 class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated, IsPharmacistOrManager, CanModifySales]
