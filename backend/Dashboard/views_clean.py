@@ -10,6 +10,23 @@ from Sales.models import Sale, SaleItem, Customer
 from Purchases.models import Purchase
 
 
+def get_user_pharmacy(user):
+    """
+    Get the pharmacy associated with a user, either as owner or manager.
+    """
+    # Try to get pharmacy through ownership first
+    pharmacy = getattr(user, 'owned_pharmacy', None)
+    
+    # If not an owner, check if user is a manager
+    if not pharmacy:
+        from Pharmacy.models import Manager
+        manager_permission = Manager.objects.filter(user=user).first()
+        if manager_permission:
+            pharmacy = manager_permission.pharmacy
+    
+    return pharmacy
+
+
 class KpisView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -19,10 +36,9 @@ class KpisView(APIView):
             user = request.user
             print(f"🔍 DEBUG - User: {user.username} (ID: {user.id})")
             print(f"🔍 DEBUG - User type: {type(user).__name__}")
-            print(f"🔍 DEBUG - Has pharmacy attr: {hasattr(user, 'pharmacy')}")
             
-            pharmacy = getattr(user, 'pharmacy', None)
-            print(f"🔍 DEBUG - Pharmacy: {pharmacy}")
+            pharmacy = get_user_pharmacy(user)
+            print(f"🔍 DEBUG - Final Pharmacy: {pharmacy}")
             print(f"🔍 DEBUG - Pharmacy ID: {getattr(pharmacy, 'id', None) if pharmacy else None}")
             
             if not pharmacy:
@@ -60,7 +76,7 @@ class KpisView(APIView):
             )
             
             # Static KPIs - ALL FILTERED BY PHARMACY
-            total_customers = Customer.objects.filter(pharmacy=pharmacy).count()
+            total_customers = Customer.objects.filter(sale__pharmacy=pharmacy).distinct().count()
             total_sales = Sale.objects.filter(pharmacy=pharmacy).aggregate(total=Sum('total_amount'))['total'] or 0
             total_purchases = Purchase.objects.filter(pharmacy=pharmacy).aggregate(total=Sum('total_amount'))['total'] or 0
             total_medicines = PharmacyMedicine.objects.filter(pharmacy=pharmacy).aggregate(total=Sum('quantity'))['total'] or 0
@@ -97,7 +113,7 @@ class TopProductsView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
+            pharmacy = get_user_pharmacy(request.user)
             if not pharmacy:
                 return Response([])
                 
@@ -133,7 +149,7 @@ class RevenueTrendView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
+            pharmacy = get_user_pharmacy(request.user)
             if not pharmacy:
                 return Response([])
                 
@@ -168,7 +184,7 @@ class SalesView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
+            pharmacy = get_user_pharmacy(request.user)
             if not pharmacy:
                 return Response([])
                 
@@ -201,7 +217,7 @@ class InventoryView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
+            pharmacy = get_user_pharmacy(request.user)
             if not pharmacy:
                 return Response([])
                 

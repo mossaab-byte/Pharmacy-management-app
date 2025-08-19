@@ -1,43 +1,34 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Sum, F
-from django.db.models.functions import TruncMonth, TruncDate
-from datetime import datetime, timedelta
+from django.db.models import Sum, F, DecimalField
+from django.db.models.functions import TruncMonth, Coalesce
 
 from Pharmacy.models import PharmacyMedicine
-from Sales.models import Sale, SaleItem, Customer
-from Purchases.models import Purchase
+from Sales.models import Sale, SaleItem
+from .serializers import (
+    KpiSerializer,
+    TopProductSerializer,
+    RevenueTrendSerializer,
+    SaleSerializer,
+    InventorySerializer,
+)
 
 
 class KpisView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        from Sales.models import Sale, Customer
+        from Pharmacy.models import PharmacyMedicine
+        from Purchases.models import Purchase
+        from django.db.models.functions import TruncMonth
+        from django.db.models import Sum
+        import datetime
+        
         try:
-            # Get user's pharmacy with detailed debugging
-            user = request.user
-            print(f"🔍 DEBUG - User: {user.username} (ID: {user.id})")
-            print(f"🔍 DEBUG - User type: {type(user).__name__}")
-            print(f"🔍 DEBUG - Has pharmacy attr: {hasattr(user, 'pharmacy')}")
-            
-            pharmacy = getattr(user, 'pharmacy', None)
-            print(f"🔍 DEBUG - Pharmacy: {pharmacy}")
-            print(f"🔍 DEBUG - Pharmacy ID: {getattr(pharmacy, 'id', None) if pharmacy else None}")
-            
-            if not pharmacy:
-                print("⚠️ WARNING - User has no associated pharmacy")
-                return Response({
-                    "error": "User has no associated pharmacy",
-                    "totalSales": 0,
-                    "totalPurchases": 0,
-                    "totalCustomers": 0,
-                    "totalMedicines": 0,
-                    "salesMonthly": [],
-                    "purchasesMonthly": []
-                }, status=200)  # Return 200 with empty data
-            
-            print(f"✅ Processing data for pharmacy: {pharmacy.name} (ID: {pharmacy.id})")
+            # Get user's pharmacy
+            pharmacy = request.user.pharmacy
             
             # Monthly sales totals - FILTERED BY PHARMACY
             sales_monthly = (
@@ -65,8 +56,6 @@ class KpisView(APIView):
             total_purchases = Purchase.objects.filter(pharmacy=pharmacy).aggregate(total=Sum('total_amount'))['total'] or 0
             total_medicines = PharmacyMedicine.objects.filter(pharmacy=pharmacy).aggregate(total=Sum('quantity'))['total'] or 0
             
-            print(f"📊 RESULTS - Sales: {total_sales}, Customers: {total_customers}, Medicines: {total_medicines}")
-            
             # Compose response
             data = {
                 "salesMonthly": list(sales_monthly),
@@ -78,18 +67,8 @@ class KpisView(APIView):
             }
             return Response(data)
         except Exception as e:
-            print(f"❌ ERROR in KpisView: {e}")
-            import traceback
-            traceback.print_exc()
-            return Response({
-                "error": str(e),
-                "totalSales": 0,
-                "totalPurchases": 0,
-                "totalCustomers": 0,
-                "totalMedicines": 0,
-                "salesMonthly": [],
-                "purchasesMonthly": []
-            }, status=200)  # Return 200 with empty data instead of 500
+            print(f"Error in KpisView: {e}")
+            return Response({"error": str(e)}, status=500)
 
 
 class TopProductsView(APIView):
@@ -97,10 +76,7 @@ class TopProductsView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
-            if not pharmacy:
-                return Response([])
-                
+            pharmacy = request.user.pharmacy
             top_products = (
                 SaleItem.objects
                 .filter(sale__pharmacy=pharmacy)
@@ -123,8 +99,6 @@ class TopProductsView(APIView):
             return Response(products_data)
         except Exception as e:
             print(f"Error in TopProductsView: {e}")
-            import traceback
-            traceback.print_exc()
             return Response([], status=200)
 
 
@@ -133,10 +107,10 @@ class RevenueTrendView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
-            if not pharmacy:
-                return Response([])
-                
+            pharmacy = request.user.pharmacy
+            from datetime import datetime, timedelta
+            from django.db.models.functions import TruncDate
+            
             thirty_days_ago = datetime.now() - timedelta(days=30)
             
             revenue_trend = (
@@ -158,8 +132,6 @@ class RevenueTrendView(APIView):
             return Response(trend_data)
         except Exception as e:
             print(f"Error in RevenueTrendView: {e}")
-            import traceback
-            traceback.print_exc()
             return Response([], status=200)
 
 
@@ -168,10 +140,7 @@ class SalesView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
-            if not pharmacy:
-                return Response([])
-                
+            pharmacy = request.user.pharmacy
             recent_sales = (
                 Sale.objects
                 .filter(pharmacy=pharmacy)
@@ -191,8 +160,6 @@ class SalesView(APIView):
             return Response(sales_data)
         except Exception as e:
             print(f"Error in SalesView: {e}")
-            import traceback
-            traceback.print_exc()
             return Response([], status=200)
 
 
@@ -201,10 +168,7 @@ class InventoryView(APIView):
 
     def get(self, request):
         try:
-            pharmacy = getattr(request.user, 'pharmacy', None)
-            if not pharmacy:
-                return Response([])
-                
+            pharmacy = request.user.pharmacy
             inventory_items = (
                 PharmacyMedicine.objects
                 .filter(pharmacy=pharmacy)
@@ -227,6 +191,4 @@ class InventoryView(APIView):
             return Response(inventory_data)
         except Exception as e:
             print(f"Error in InventoryView: {e}")
-            import traceback
-            traceback.print_exc()
             return Response([], status=200)

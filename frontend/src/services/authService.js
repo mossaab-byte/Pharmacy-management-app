@@ -20,6 +20,8 @@ const authService = {
     await apiClient.post('/auth/logout/');
   },
 
+  registerPharmacy: (payload) => apiClient.post('/pharmacies/register/', payload).then(res => res.data),
+
   // Vérifier si l'utilisateur est pharmacien (a tous les droits)
   isPharmacist: async () => {
     try {

@@ -30,15 +30,18 @@ class PharmacyViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             # Superuser can see all pharmacies
             return Pharmacy.objects.all()
-        elif user.is_pharmacist and hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
-            # Pharmacist can only see their own pharmacy
+        elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+            # User owns a pharmacy
             return Pharmacy.objects.filter(id=user.owned_pharmacy.id)
-        elif user.pharmacy:
-            # User belongs to a pharmacy
-            return Pharmacy.objects.filter(id=user.pharmacy.id)
         else:
-            # No pharmacy access
-            return Pharmacy.objects.none()
+            # Check if user is a manager with pharmacy access
+            from .models import Manager
+            manager_permission = Manager.objects.filter(user=user).first()
+            if manager_permission:
+                return Pharmacy.objects.filter(id=manager_permission.pharmacy.id)
+            else:
+                # No pharmacy access
+                return Pharmacy.objects.none()
 
     def perform_create(self, serializer):
         # Only allow one pharmacy per pharmacist (unless superuser)
@@ -70,8 +73,13 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
                 pharmacy = None
         elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
             pharmacy = user.owned_pharmacy
-        elif hasattr(user, 'pharmacy') and user.pharmacy:
-            pharmacy = user.pharmacy
+        else:
+            # Check if user is a manager with pharmacy access
+            from .models import Manager
+            manager_permission = Manager.objects.filter(user=user).first()
+            if manager_permission:
+                pharmacy = manager_permission.pharmacy
+        
         if not pharmacy:
             return Response({'error': 'No pharmacy found for user.'}, status=400)
 
@@ -148,19 +156,20 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = PharmacyMedicine.objects.select_related('pharmacy', 'medicine')
+        
         if user.is_superuser:
             pass  # all pharmacies
-        elif user.is_pharmacist:
-            if hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
-                qs = qs.filter(pharmacy=user.owned_pharmacy)
-            elif user.pharmacy:
-                qs = qs.filter(pharmacy=user.pharmacy)
+        elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+            # User owns a pharmacy
+            qs = qs.filter(pharmacy=user.owned_pharmacy)
+        else:
+            # Check if user is a manager with pharmacy access
+            from .models import Manager
+            manager_permission = Manager.objects.filter(user=user).first()
+            if manager_permission:
+                qs = qs.filter(pharmacy=manager_permission.pharmacy)
             else:
                 return PharmacyMedicine.objects.none()
-        elif user.is_manager and user.pharmacy:
-            qs = qs.filter(pharmacy=user.pharmacy)
-        else:
-            return PharmacyMedicine.objects.none()
 
         # Annotate for sorting: quantity>0 first, then by name
         from django.db.models import Case, When, Value, IntegerField
@@ -182,28 +191,20 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
             # Superuser can specify pharmacy or use default
             pharmacy = serializer.validated_data.get('pharmacy')
             if not pharmacy:
-                pharmacy = user.pharmacy or Pharmacy.objects.first()
+                pharmacy = Pharmacy.objects.first()
         elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
             pharmacy = user.owned_pharmacy
-        elif user.pharmacy:
-            pharmacy = user.pharmacy
+        else:
+            # Check if user is a manager with pharmacy access
+            from .models import Manager
+            manager_permission = Manager.objects.filter(user=user).first()
+            if manager_permission:
+                pharmacy = manager_permission.pharmacy
         
         if not pharmacy:
             raise ValidationError("No pharmacy assigned to user")
             
         serializer.save(pharmacy=pharmacy)
-    serializer_class = PharmacyMedicineSerializer
-    permission_classes = [IsAuthenticated, CanManageInventory]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_pharmacist or user.is_superuser:
-            return PharmacyMedicine.objects.select_related('pharmacy', 'medicine')
-        # If user has a pharmacy, filter by that pharmacy
-        if hasattr(user, 'pharmacy') and user.pharmacy:
-            return PharmacyMedicine.objects.filter(pharmacy=user.pharmacy)
-        # Otherwise return empty queryset
-        return PharmacyMedicine.objects.none()
 
     @action(detail=True, methods=['post'], serializer_class=StockAdjustmentSerializer)
     def add_stock(self, request, pk=None):
@@ -247,13 +248,17 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
                 med_id = serializer.validated_data['medicine_id']
                 qty = serializer.validated_data['quantity']
                 reason = serializer.validated_data['reason']
-                # Get or create PharmacyMedicine for the user's pharmacy or first available pharmacy
+                
+                # Get user's pharmacy using consistent logic
                 user_pharmacy = None
-                if hasattr(request.user, 'pharmacy') and request.user.pharmacy:
-                    user_pharmacy = request.user.pharmacy
+                if hasattr(request.user, 'owned_pharmacy') and request.user.owned_pharmacy:
+                    user_pharmacy = request.user.owned_pharmacy
                 else:
-                    # Get first available pharmacy as fallback
-                    user_pharmacy = Pharmacy.objects.first()
+                    # Check if user is a manager with pharmacy access
+                    from .models import Manager
+                    manager_permission = Manager.objects.filter(user=request.user).first()
+                    if manager_permission:
+                        user_pharmacy = manager_permission.pharmacy
                 
                 if user_pharmacy:
                     pm, _ = PharmacyMedicine.objects.get_or_create(
@@ -279,13 +284,19 @@ class ManagerViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         # For superusers and pharmacists, show all managers
-        if user.is_superuser or user.is_pharmacist:
+        if user.is_superuser:
             return Manager.objects.all()
-        # For regular users, check if they have a pharmacy
-        if hasattr(user, 'pharmacy') and user.pharmacy:
-            return Manager.objects.filter(pharmacy=user.pharmacy)
-        # Otherwise return empty queryset
-        return Manager.objects.none()
+        elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+            # Pharmacy owner can see managers for their pharmacy
+            return Manager.objects.filter(pharmacy=user.owned_pharmacy)
+        else:
+            # Check if user is a manager with pharmacy access
+            manager_permission = Manager.objects.filter(user=user).first()
+            if manager_permission:
+                return Manager.objects.filter(pharmacy=manager_permission.pharmacy)
+            else:
+                # Otherwise return empty queryset
+                return Manager.objects.none()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -319,13 +330,16 @@ def sales_stats(request):
     stats = []
     user = request.user
     
-    # Get the pharmacy to filter by
+    # Get the pharmacy to filter by using consistent logic
     pharmacy = None
-    if hasattr(user, 'pharmacy') and user.pharmacy:
-        pharmacy = user.pharmacy
+    if hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+        pharmacy = user.owned_pharmacy
     else:
-        # If no pharmacy, get first available pharmacy or return empty stats
-        pharmacy = Pharmacy.objects.first()
+        # Check if user is a manager with pharmacy access
+        from .models import Manager
+        manager_permission = Manager.objects.filter(user=user).first()
+        if manager_permission:
+            pharmacy = manager_permission.pharmacy
     
     if not pharmacy:
         return Response([])

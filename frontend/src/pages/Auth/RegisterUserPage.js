@@ -71,8 +71,14 @@ const RegisterUserPage = () => {
       // Envoyer le payload complet avec password_confirm
       const response = await authService.registerUser(form);
       
-      showNotification('User registered successfully! Please login.', 'success');
-      navigate('/login');
+      // Store tokens if provided (auto-login)
+      if (response.access) {
+        localStorage.setItem('access_token', response.access);
+        localStorage.setItem('refresh_token', response.refresh);
+      }
+      
+      showNotification('User registered successfully! Please set up your pharmacy.', 'success');
+      navigate('/register-pharmacy');
       
     } catch (error) {
       console.error('Registration error:', error);
