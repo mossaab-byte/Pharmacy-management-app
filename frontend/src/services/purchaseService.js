@@ -48,6 +48,51 @@ const purchaseService = {
   },
 
   // Get purchase statistics
+  getStats: async () => {
+    try {
+      const response = await apiClient.get('/purchases/purchases/stats/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching purchase stats:', error);
+      throw new Error(`Failed to fetch purchase stats: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
+  // Finalize a purchase (complete the purchase and update inventory)
+  finalize: async (id) => {
+    try {
+      const response = await apiClient.post(`/purchases/purchases/${id}/finalize/`);
+      console.log('Purchase finalized successfully:', id);
+      return response.data;
+    } catch (error) {
+      console.error('Error finalizing purchase:', error);
+      throw new Error(`Failed to finalize purchase: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
+  // Get purchase statistics
+  getStats: async () => {
+    try {
+      const response = await apiClient.get('/purchases/purchases/stats/');
+      console.log('Purchase stats loaded successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching purchase stats:', error);
+      throw new Error(`Failed to fetch purchase stats: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
+  // Finalize purchase (updates inventory)
+  finalize: async (id) => {
+    try {
+      const response = await apiClient.post(`/purchases/purchases/${id}/finalize/`);
+      console.log('Purchase finalized successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error finalizing purchase:', error);
+      throw new Error(`Failed to finalize purchase: ${error.response?.data?.detail || error.message}`);
+    }
+  },
 
   getAll: async (params = {}) => {
     try {

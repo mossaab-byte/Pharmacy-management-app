@@ -5,150 +5,244 @@ import {
   Navigate 
 } from 'react-router-dom';
 
-import Layout from './components/layout/layout';
-import SimpleProtectedRoute from './components/SimpleProtectedRoute';
-import { DashboardProvider } from './context/DashboardContext';
-import ErrorBoundary from './components/ErrorBoundary';
-
-// Pages
-import Dashboard from './pages/Dashboard/DashboardStable';
-import CustomerManagementPage from './pages/Customers/customerManagementPage';
-import CustomerDetailPage from './pages/Customers/customerDetailPage';
-import CustomerForm from './components/customers/customerForm';
-import SalesFormPage from './pages/Sales/salesForm';
-import SimpleStableSalesForm from './components/sales/SimpleStableSalesForm';
-import SaleDetailPage from './pages/Sales/SaleDetailPage';
-import SalesManagementPage from './pages/Sales/SalesManagementPageStable';
-import SupplierDetailsPage from './pages/Suppliers/SupplierDetailsPage';
-import SupplierListPage from './pages/Suppliers/SuppliersListPage';
-import PurchaseDetailPage from './pages/Purchases/purchaseDetailsPage';
-import PurchaseManagementPage from './pages/Purchases/PurchaseManagementPageStable';
-import PurchaseForm from './components/purchases/purchaseForm';
-import ComprehensivePurchaseForm from './components/purchases/ComprehensivePurchaseForm';
-import ComprehensiveExchangeForm from './components/exchanges/ComprehensiveExchangeForm';
-import ExchangeCreate from './pages/Exchanges/ExchangeCreate';
-import ExchangeDashboard from './pages/Exchanges/ExchangeDashboard';
-import BalanceOverview from './pages/Exchanges/BalanceOverview';
-import ExchangeHistory from './pages/Exchanges/ExchangeHistory';
-import SupplierForm from './pages/Suppliers/SupplierFormPage';
-
 // Auth pages
-import Login from './pages/Auth/LoginPageNew';
+import LoginPage from './pages/Auth/LoginPageNew';
 import RegisterUserPage from './pages/Auth/RegisterUserPage';
-import RegisterPharmacyPage from './pages/Auth/RegisterPharmacyPage';
+// import RegisterPharmacyPage from './pages/Auth/RegisterPharmacyPage'; // Temporarily commented out
 
-// Test pages
-import MedicineTest from './pages/Test/MedicineTest';
-import ProductionReadinessTest from './components/common/ProductionReadinessTest';
-import DatabaseConnectivityTest from './components/common/DatabaseConnectivityTest';
-import ComprehensiveSystemTest from './components/common/ComprehensiveSystemTest';
-import BackendConnectionTest from './components/debug/BackendConnectionTest';
-import TroubleshootingPage from './components/debug/TroubleshootingPage';
-import DiagnosticSalesForm from './components/debug/DiagnosticSalesForm';
-import APITestPage from './components/debug/APITestPage';
-import MedicineSearchTest from './components/debug/MedicineSearchTest';
-import BackendDiagnostic from './components/debug/BackendDiagnostic';
+// Dashboard - using the fancy stable dashboard with layout
+import DashboardStable from './pages/Dashboard/DashboardStable';
+import Layout from './components/layout/layout';
 
-// New module pages
-import MedicinesPage from './pages/Medicines/MedicinesPageQuickFix';
-import SimpleInventoryPage from './pages/inventory/SimpleInventoryPage';
-import FinanceDashboard from './pages/Finance/FinanceDashboardNew';
-import UsersPage from './pages/Users/UsersPageNew';
-import PharmacySettingsPage from './pages/Pharmacy/PharmacySettingsPageNew';
-import ReportsPage from './pages/Reports/ReportsPageNew';
+// Main pages
+import MedicinesPage from './pages/Medicines/MedicinesPage';
+import SalesManagementPageStable from './pages/Sales/SalesManagementPageStable';
+import CustomerManagementPage from './pages/Customers/customerManagementPage';
+import PurchaseManagementPageStable from './pages/Purchases/PurchaseManagementPageStable';
+import PurchaseFormPage from './pages/Purchases/PurchaseFormPage';
+import PurchaseDetailPage from './pages/Purchases/purchaseDetailsPage';
+import SupplierManagementPage from './pages/Suppliers/SupplierManagementPage';
+import SupplierFormPage from './pages/Suppliers/SupplierFormPage';
+import SupplierPaymentPage from './pages/Suppliers/SupplierPaymentPage';
+import InventoryPageNew from './pages/inventory/InventoryPageNew'; // Your real inventory page
 
-// Dashboard Layout with Provider
-const DashboardLayout = ({ children }) => (
-  <DashboardProvider>
-    <Layout>
-      {children}
-    </Layout>
-  </DashboardProvider>
+// Sales components
+import WorkingSalesForm from './components/sales/WorkingSalesForm';
+
+// Components
+import PharmacyCheck from './components/PharmacyCheck';
+
+// Temporary simple pharmacy registration component
+const TempRegisterPharmacy = () => (
+  <div style={{ padding: '20px', textAlign: 'center' }}>
+    <h1>Register Your Pharmacy</h1>
+    <p>Pharmacy registration coming soon...</p>
+    <button 
+      onClick={() => window.location.href = '/login'}
+      style={{
+        backgroundColor: '#007bff',
+        color: 'white',
+        border: 'none',
+        padding: '10px 20px',
+        borderRadius: '4px',
+        cursor: 'pointer'
+      }}
+    >
+      Back to Login
+    </button>
+  </div>
 );
 
-// Protected Route wrapper
-const ProtectedRoute = ({ children }) => (
-  <SimpleProtectedRoute>
-    <DashboardLayout>
-      {children}
-    </DashboardLayout>
-  </SimpleProtectedRoute>
-);
+// Simple auth check component
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" replace />;
+};
 
 export default function AppRouter() {
   return (
-    <ErrorBoundary>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register-user" element={<RegisterUserPage />} />
-        <Route path="/register-pharmacy" element={<RegisterPharmacyPage />} />
-
-        {/* Protected routes */}
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        
-        {/* Customers */}
-        <Route path="/customers" element={<ProtectedRoute><CustomerManagementPage /></ProtectedRoute>} />
-        <Route path="/customers/new" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
-        <Route path="/customers/edit/:id" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
-        <Route path="/customers/:id" element={<ProtectedRoute><CustomerDetailPage /></ProtectedRoute>} />
-
-        {/* Sales */}
-        <Route path="/sales" element={<ProtectedRoute><SalesManagementPage /></ProtectedRoute>} />
-        <Route path="/sales/new" element={<ProtectedRoute><SalesFormPage /></ProtectedRoute>} />
-        <Route path="/sales/edit/:id" element={<ProtectedRoute><SalesFormPage /></ProtectedRoute>} />
-        <Route path="/sales/stable" element={<ProtectedRoute><div className="page p-6"><SimpleStableSalesForm /></div></ProtectedRoute>} />
-        <Route path="/sales/:id" element={<ProtectedRoute><SaleDetailPage /></ProtectedRoute>} />
-
-        {/* Suppliers */}
-        <Route path="/suppliers" element={<ProtectedRoute><SupplierListPage /></ProtectedRoute>} />
-        <Route path="/suppliers/new" element={<ProtectedRoute><SupplierForm /></ProtectedRoute>} />
-        <Route path="/suppliers/:id" element={<ProtectedRoute><SupplierDetailsPage /></ProtectedRoute>} />
-
-        {/* Purchases */}
-        <Route path="/purchases" element={<ProtectedRoute><PurchaseManagementPage /></ProtectedRoute>} />
-        <Route path="/purchases/new" element={<ProtectedRoute><ComprehensivePurchaseForm /></ProtectedRoute>} />
-        <Route path="/purchases/:id" element={<ProtectedRoute><PurchaseDetailPage /></ProtectedRoute>} />
-
-        {/* Exchanges */}
-        <Route path="/exchanges/create" element={<ProtectedRoute><ComprehensiveExchangeForm /></ProtectedRoute>} />
-        <Route path="/exchanges" element={<ProtectedRoute><ExchangeDashboard /></ProtectedRoute>} />
-        <Route path="/exchanges/balance" element={<ProtectedRoute><BalanceOverview /></ProtectedRoute>} />
-        <Route path="/exchanges/history/:pharmacy_id" element={<ProtectedRoute><ExchangeHistory /></ProtectedRoute>} />
-
-        {/* Medicines */}
-        <Route path="/medicines" element={<ProtectedRoute><MedicinesPage /></ProtectedRoute>} />
-
-        {/* Inventory */}
-        <Route path="/inventory" element={<ProtectedRoute><SimpleInventoryPage /></ProtectedRoute>} />
-
-        {/* Finance */}
-        <Route path="/finance" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
-
-        {/* Reports */}
-        <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-
-        {/* Users */}
-        <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
-
-        {/* Pharmacy Settings */}
-        <Route path="/pharmacy" element={<ProtectedRoute><PharmacySettingsPage /></ProtectedRoute>} />
-
-        {/* Test pages */}
-        <Route path="/test/medicine" element={<ProtectedRoute><MedicineTest /></ProtectedRoute>} />
-        <Route path="/test/medicine-search" element={<ProtectedRoute><MedicineSearchTest /></ProtectedRoute>} />
-        <Route path="/test/production" element={<ProtectedRoute><ProductionReadinessTest /></ProtectedRoute>} />
-        <Route path="/test/database" element={<ProtectedRoute><DatabaseConnectivityTest /></ProtectedRoute>} />
-        <Route path="/test/comprehensive" element={<ProtectedRoute><ComprehensiveSystemTest /></ProtectedRoute>} />
-        <Route path="/test/backend" element={<ProtectedRoute><BackendConnectionTest /></ProtectedRoute>} />
-        <Route path="/test/api" element={<ProtectedRoute><APITestPage /></ProtectedRoute>} />
-        <Route path="/troubleshoot" element={<ProtectedRoute><TroubleshootingPage /></ProtectedRoute>} />
-        <Route path="/diagnose" element={<ProtectedRoute><DiagnosticSalesForm /></ProtectedRoute>} />
-        <Route path="/debug/backend" element={<ProtectedRoute><BackendDiagnostic /></ProtectedRoute>} />
-
-        {/* Fallback redirect */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </ErrorBoundary>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register-user" element={<RegisterUserPage />} />
+      <Route path="/register-pharmacy" element={<TempRegisterPharmacy />} />
+      
+      {/* Protected routes */}
+      <Route path="/" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <DashboardStable />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <DashboardStable />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Medicines Management */}
+      <Route path="/medicines" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <MedicinesPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Inventory Management */}
+      <Route path="/inventory" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <InventoryPageNew />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Sales Management */}
+      <Route path="/sales" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <SalesManagementPageStable />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Sales Form - New Sale */}
+      <Route path="/sales/new" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <WorkingSalesForm />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Sales Form - Edit Sale */}
+      <Route path="/sales/:id/edit" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <WorkingSalesForm />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Customer Management */}
+      <Route path="/customers" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <CustomerManagementPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Purchase Management */}
+      <Route path="/purchases" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <PurchaseManagementPageStable />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Purchase Form - New Purchase */}
+      <Route path="/purchases/new" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <PurchaseFormPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Purchase Form - Edit Purchase */}
+      <Route path="/purchases/:id/edit" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <PurchaseFormPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Purchase Details - View Purchase */}
+      <Route path="/purchases/:id" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <PurchaseDetailPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Supplier Management */}
+      <Route path="/suppliers" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <SupplierManagementPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Supplier Form - New */}
+      <Route path="/suppliers/new" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <SupplierFormPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Supplier Form - Edit */}
+      <Route path="/suppliers/:id/edit" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <SupplierFormPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Supplier Payment Management */}
+      <Route path="/suppliers/:id/payments" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <SupplierPaymentPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Fallback redirect - changed to dashboard instead of login */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }

@@ -159,34 +159,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'Created {created_count} medicines'))
 
     def create_sample_suppliers(self):
-        """Create sample suppliers"""
-        suppliers_data = [
-            {
-                'name': 'Global Pharma Supplies',
-                'contact_person': 'John Smith',
-                'contact_phone': '+1-555-0101',
-                'contact_email': 'john.smith@globalpharma.com',
-                'address': '456 Industrial Ave, Supply City'
-            },
-            {
-                'name': 'MediCorp Distribution',
-                'contact_person': 'Sarah Johnson',
-                'contact_phone': '+1-555-0102',
-                'contact_email': 'sarah.johnson@medicorp.com',
-                'address': '789 Warehouse Blvd, Distribution Hub'
-            }
-        ]
-        
-        created_count = 0
-        for supplier_data in suppliers_data:
-            supplier, created = Supplier.objects.get_or_create(
-                name=supplier_data['name'],
-                defaults=supplier_data
-            )
-            if created:
-                created_count += 1
-        
-        self.stdout.write(self.style.SUCCESS(f'Created {created_count} suppliers'))
+        """Create sample suppliers - DISABLED: No mock suppliers"""
+        # Mock supplier creation disabled to ensure clean start
+        self.stdout.write(self.style.SUCCESS('Mock supplier creation skipped - create suppliers manually'))
+        return
 
     def create_sample_customers(self):
         """Create sample customers"""

@@ -1,7 +1,26 @@
 import React, { useEffect, useRef } from 'react';
-import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { 
+  Chart, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  LineController,
+  Title, 
+  Tooltip, 
+  Legend 
+} from 'chart.js';
 
-Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+Chart.register(
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  LineController,
+  Title, 
+  Tooltip, 
+  Legend
+);
 
 const SalesChart = ({ data }) => {
   const chartRef = useRef(null);

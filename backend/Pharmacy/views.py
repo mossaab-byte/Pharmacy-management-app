@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from rest_framework.exceptions import ValidationError
 from .models import Manager
 from .serializers import ManagerSerializer
@@ -88,7 +88,7 @@ class PharmacyMedicineViewSet(viewsets.ModelViewSet):
         medicines_qs = Medicine.objects.all()
         if search:
             medicines_qs = medicines_qs.filter(
-                models.Q(nom__icontains=search) | models.Q(code__icontains=search)
+                Q(nom__icontains=search) | Q(code__icontains=search)
             )
 
         # Sorting support

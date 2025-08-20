@@ -55,6 +55,17 @@ const supplierService = {
     }
   },
 
+  // Get supplier transactions
+  getTransactions: async (id) => {
+    try {
+      const response = await apiClient.get(`/purchases/suppliers/${id}/transactions/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching supplier transactions:', error);
+      throw new Error(`Failed to fetch supplier transactions: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
   recordPayment: async (id, payload) => {
     try {
       const response = await apiClient.post(`/purchases/suppliers/${id}/payments/`, payload);
@@ -92,6 +103,42 @@ const supplierService = {
     } catch (error) {
       console.error('Error adjusting supplier balance:', error);
       throw new Error(`Failed to adjust supplier balance: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
+  // Get supplier transactions
+  getTransactions: async (id) => {
+    try {
+      const response = await apiClient.get(`/purchases/suppliers/${id}/transactions/`);
+      console.log('Supplier transactions loaded successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching supplier transactions:', error);
+      throw new Error(`Failed to fetch supplier transactions: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
+  // Record payment to supplier
+  recordPayment: async (id, payload) => {
+    try {
+      const response = await apiClient.post(`/purchases/suppliers/${id}/payments/`, payload);
+      console.log('Payment recorded successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      throw new Error(`Failed to record payment: ${error.response?.data?.detail || error.message}`);
+    }
+  },
+
+  // Get supplier purchases
+  getPurchases: async (id) => {
+    try {
+      const response = await apiClient.get(`/purchases/suppliers/${id}/purchases/`);
+      console.log('Supplier purchases loaded successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching supplier purchases:', error);
+      throw new Error(`Failed to fetch supplier purchases: ${error.response?.data?.detail || error.message}`);
     }
   }
 };

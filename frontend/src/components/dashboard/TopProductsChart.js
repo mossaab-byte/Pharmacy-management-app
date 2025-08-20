@@ -1,7 +1,24 @@
 import React, { useEffect, useRef } from 'react';
-import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { 
+  Chart, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  BarController,
+  Title, 
+  Tooltip, 
+  Legend 
+} from 'chart.js';
 
-Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+Chart.register(
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  BarController,
+  Title, 
+  Tooltip, 
+  Legend
+);
 
 const TopProductsChart = ({ data }) => {
   const chartRef = useRef(null);

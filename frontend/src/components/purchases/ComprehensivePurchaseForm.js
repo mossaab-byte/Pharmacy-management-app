@@ -45,23 +45,6 @@ const ComprehensivePurchaseForm = () => {
     } catch (error) {
       console.error('Error loading data:', error);
       setError('Failed to load data. Please try again.');
-      
-      // Use mock data on error
-      const mockSuppliers = [
-        { id: 1, name: 'Global Pharma Distributors', contact_person: 'Ahmed El Fassi', phone: '+212 5 22 45 67 89' },
-        { id: 2, name: 'Medico Supply Co.', contact_person: 'Fatima Zahra', phone: '+212 5 22 67 89 12' },
-        { id: 3, name: 'Atlas Medical', contact_person: 'Omar Bennani', phone: '+212 5 22 89 12 34' }
-      ];
-      
-      const mockMedicines = [
-        { id: 1, nom: 'Doliprane 500mg', nom_commercial: 'Doliprane 500mg', dci1: 'Paracetamol', forme: 'Comprimé', presentation: 'Boîte de 16 comprimés', code: '6118000041252', ppv: 15.50, prix_public: 15.50, unit_price: 15.50, unit_cost: 12.40, stock: 25 },
-        { id: 2, nom: 'Doliprane 1000mg', nom_commercial: 'Doliprane 1000mg', dci1: 'Paracetamol', forme: 'Comprimé', presentation: 'Boîte de 8 comprimés', code: '6118000040279', ppv: 22.00, prix_public: 22.00, unit_price: 22.00, unit_cost: 17.60, stock: 18 },
-        { id: 3, nom: 'Aspirin 325mg', nom_commercial: 'Aspirin 325mg', dci1: 'Acide acétylsalicylique', forme: 'Comprimé', presentation: 'Boîte de 20 comprimés', code: '6118000040293', ppv: 18.75, prix_public: 18.75, unit_price: 18.75, unit_cost: 15.00, stock: 30 }
-      ];
-      
-      setSuppliers(mockSuppliers);
-      setMedicines(mockMedicines);
-      setSearchResults(mockMedicines);
     } finally {
       setLoading(false);
     }

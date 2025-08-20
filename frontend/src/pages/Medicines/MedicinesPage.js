@@ -5,7 +5,7 @@ import { Card, Input, Button, LoadingSpinner, ErrorMessage, Table } from '../../
 import { useNotification } from '../../context/NotificationContext';
 import { Search, Package, BarChart3, Plus, Filter } from 'lucide-react';
 
-// Mock service if the real one fails
+// Mock service if the real one fails - with better mock data
 const mockMedicineService = {
   getMedicines: async () => ({
     data: {
@@ -16,17 +16,58 @@ const mockMedicineService = {
           forme: 'Tablet',
           code: 'PAR500',
           prix_public: 5.99,
-          princeps_generique: 'Generic'
+          princeps_generique: 'Generic',
+          dosage: '500mg',
+          laboratoire: 'Generic Labs'
+        },
+        {
+          id: 2,
+          nom_commercial: 'Amoxicillin 250mg',
+          forme: 'Capsule',
+          code: 'AMX250',
+          prix_public: 12.50,
+          princeps_generique: 'Generic',
+          dosage: '250mg',
+          laboratoire: 'Pharma Corp'
         }
       ],
-      count: 1
+      count: 2
     }
   }),
   getStatistics: async () => ({
     data: {
-      total_medicines: 0,
-      total_value: 0,
-      categories: []
+      total_medicines: 2,
+      total_value: 18.49,
+      categories: [
+        { name: 'Tablets', count: 1 },
+        { name: 'Capsules', count: 1 }
+      ]
+    }
+  }),
+  quickSearch: async (searchTerm, limit) => ({
+    data: [
+      {
+        id: 1,
+        nom_commercial: 'Paracetamol 500mg',
+        forme: 'Tablet',
+        code: 'PAR500',
+        prix_public: 5.99
+      }
+    ].filter(item => 
+      item.nom_commercial.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.code.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }),
+  searchByCode: async (code) => ({
+    data: {
+      found: code === 'PAR500',
+      medicine: code === 'PAR500' ? {
+        id: 1,
+        nom_commercial: 'Paracetamol 500mg',
+        forme: 'Tablet',
+        code: 'PAR500',
+        prix_public: 5.99
+      } : null
     }
   })
 };
@@ -114,6 +155,15 @@ const MedicinesPage = () => {
 
   const fetchStatistics = async () => {
     try {
+      // Try to load the real service
+      let medicineService;
+      try {
+        medicineService = (await import('../../services/medicineService')).default;
+      } catch (importError) {
+        console.warn('Failed to load medicine service, using mock:', importError);
+        medicineService = mockMedicineService;
+      }
+
       const stats = await medicineService.getStatistics();
       setStatistics(stats.data);
     } catch (err) {
@@ -128,6 +178,15 @@ const MedicinesPage = () => {
     }
 
     try {
+      // Try to load the real service
+      let medicineService;
+      try {
+        medicineService = (await import('../../services/medicineService')).default;
+      } catch (importError) {
+        console.warn('Failed to load medicine service, using mock:', importError);
+        medicineService = mockMedicineService;
+      }
+
       // Use quick search for real-time results
       const response = await medicineService.quickSearch(searchTerm, 50);
       setFilteredMedicines(response.data || []);
@@ -147,6 +206,15 @@ const MedicinesPage = () => {
 
   const handleBarcodeSearch = async (code) => {
     try {
+      // Try to load the real service
+      let medicineService;
+      try {
+        medicineService = (await import('../../services/medicineService')).default;
+      } catch (importError) {
+        console.warn('Failed to load medicine service, using mock:', importError);
+        medicineService = mockMedicineService;
+      }
+
       const response = await medicineService.searchByCode(code);
       if (response.data.found) {
         setFilteredMedicines([response.data.medicine]);

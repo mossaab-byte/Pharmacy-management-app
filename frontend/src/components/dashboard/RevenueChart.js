@@ -1,7 +1,28 @@
 import React, { useEffect, useRef } from 'react';
-import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import { 
+  Chart, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  LineController,
+  Title, 
+  Tooltip, 
+  Legend, 
+  Filler 
+} from 'chart.js';
 
-Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+Chart.register(
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  LineController,
+  Title, 
+  Tooltip, 
+  Legend, 
+  Filler
+);
 
 const RevenueChart = ({ data }) => {
   const chartRef = useRef(null);

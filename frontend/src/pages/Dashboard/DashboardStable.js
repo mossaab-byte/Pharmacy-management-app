@@ -15,21 +15,25 @@ import {
   Plus,
   RefreshCw
 } from 'lucide-react';
-import { useDashboard } from '../../context/DashboardContext';
+import { useDashboard } from '../../context/SimpleDashboardContext';
 
 const DashboardStable = () => {
   const navigate = useNavigate();
   const { dashboardData, loading, error, refreshData } = useDashboard();
-  // Fallbacks for stats if not loaded yet
+  
+  // Extract KPIs from the dashboardData structure
+  const kpis = dashboardData?.kpis || {};
+  
+  // Fallbacks for stats if not loaded yet - adapted for SimpleDashboardContext structure
   const stats = {
-    totalSales: dashboardData?.totalSales || 0,
-    totalPurchases: dashboardData?.totalPurchases || 0,
-    totalCustomers: dashboardData?.totalCustomers || 0,
-    totalMedicines: dashboardData?.totalMedicines || 0,
-    salesMonthly: dashboardData?.salesMonthly || [],
-    recentSales: Array.isArray(dashboardData?.recentSales) ? dashboardData.recentSales : [],
-    recentPurchases: Array.isArray(dashboardData?.recentPurchases) ? dashboardData.recentPurchases : [],
-    lowStockItems: Array.isArray(dashboardData?.lowStockItems) ? dashboardData.lowStockItems : []
+    totalSales: kpis?.totalSales || 0,
+    totalPurchases: kpis?.totalPurchases || 0,
+    totalCustomers: kpis?.totalCustomers || 0,
+    totalMedicines: kpis?.totalMedicines || 0,
+    salesMonthly: kpis?.salesMonthly || [],
+    recentSales: Array.isArray(dashboardData?.sales) ? dashboardData.sales : [],
+    recentPurchases: Array.isArray(kpis?.purchasesMonthly) ? kpis.purchasesMonthly : [],
+    lowStockItems: Array.isArray(dashboardData?.inventory) ? dashboardData.inventory.filter(item => item.stock_quantity < 10) : []
   };
 
   const formatCurrency = (amount) => {

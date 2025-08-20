@@ -153,15 +153,26 @@ const PurchaseManagementPageStable = () => {
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Dashboard
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Purchase Management</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Purchase Management</h1>
+              <p className="text-gray-600">Manage your inventory purchases and supplier orders</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/suppliers')}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Manage Suppliers
+            </Button>
             <Button
               variant="outline"
               onClick={fetchPurchases}

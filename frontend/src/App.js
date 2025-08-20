@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContextNew';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { DashboardProvider } from './context/SimpleDashboardContext';
 import AppRouter from './router';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import NotificationContainer from './components/common/NotificationContainer';
@@ -15,10 +16,12 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <NotificationProvider>
-              <div className="min-h-screen bg-gray-50">
-                <AppRouter />
-                <NotificationContainer />
-              </div>
+              <DashboardProvider>
+                <div className="min-h-screen bg-gray-50">
+                  <AppRouter />
+                  <NotificationContainer />
+                </div>
+              </DashboardProvider>
             </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>
