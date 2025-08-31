@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'medicaments_import',  # Added missing app
     'Finance',  # Added Finance app
     'utils',  # Added utils app
+    'Employee',  # Added Employee app
 ]
 
 REST_FRAMEWORK = {
@@ -135,6 +136,28 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Allow specific headers for debugging
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'cache-control',
+    'pragma',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3333",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3333",
+]
 
 # OR for specific origins:
 

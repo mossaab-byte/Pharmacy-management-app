@@ -1,0 +1,87 @@
+@startuml Core Domain Classes
+
+title Core Domain Model
+
+!define ENTITY_COLOR #E1F5FE
+!define VALUE_COLOR #FFF3E0
+
+class PharmacyUser <<ENTITY_COLOR>> {
+  +UUID id
+  +String username
+  +String email
+  +String first_name
+  +String last_name
+  +String phone
+  +Boolean is_pharmacist
+  +Boolean is_manager
+  +Boolean is_customer
+  +DateTime created_at
+  --
+  +String get_user_type()
+  +Boolean has_permission(permission)
+  +void save()
+}
+
+class Customer <<ENTITY_COLOR>> {
+  +UUID id
+  +String first_name
+  +String last_name
+  +String phone
+  +String email
+  +String address
+  +Date date_of_birth
+  +DateTime created_at
+  --
+  +String get_full_name()
+  +Integer get_age()
+  +void update_contact_info()
+}
+
+class Pharmacy <<ENTITY_COLOR>> {
+  +UUID id
+  +String name
+  +String address
+  +String phone
+  +JSON open_hours
+  +DateTime created_at
+  --
+  +String __str__()
+  +Boolean is_open()
+}
+
+class Medicine <<ENTITY_COLOR>> {
+  +UUID id
+  +String name
+  +String description
+  +Decimal price
+  +Integer stock_quantity
+  +String category
+  +Date expiry_date
+  +DateTime created_at
+  --
+  +Boolean is_in_stock()
+  +Boolean is_expired()
+  +void update_stock(quantity)
+}
+
+class Supplier <<ENTITY_COLOR>> {
+  +UUID id
+  +String name
+  +String contact_person
+  +String email
+  +String phone
+  +String address
+  +Decimal balance
+  +DateTime created_at
+  --
+  +void update_balance(amount)
+  +List get_medicines()
+}
+
+' Relationships
+PharmacyUser }|--|| Pharmacy : belongs_to
+Customer }|--|| Pharmacy : registered_at
+Medicine }|--|| Supplier : supplied_by
+Medicine }|--|| Pharmacy : stocked_in
+
+@enduml

@@ -1,0 +1,134 @@
+@startuml Pharmacy Management System - Use Case Diagram
+
+!define PRIMARY_COLOR #2E86AB
+!define SECONDARY_COLOR #A23B72
+!define ACCENT_COLOR #F18F01
+!define SUCCESS_COLOR #27AE60
+
+title <size:18><b>SYSTÈME DE GESTION DE PHARMACIE</b></size>\n<size:14>Vue d'Ensemble des Cas d'Usage</size>\n<size:12><i>Architecture Fonctionnelle Complète</i></size>
+
+left to right direction
+
+actor "<color:#2E86AB><size:12><b>Pharmacien</b></size></color>\n<size:10><i>Propriétaire</i></size>\n<size:9>Accès Complet</size>" as Pharmacist #LightBlue
+actor "<color:#A23B72><size:12><b>Manager</b></size></color>\n<size:10><i>Gestionnaire</i></size>\n<size:9>Accès Limité</size>" as Manager #LightPink
+actor "<color:#F18F01><size:12><b>Employé</b></size></color>\n<size:10><i>Opérateur</i></size>\n<size:9>Accès Basique</size>" as Employee #LightYellow
+actor "<color:#C73E1D><size:12><b>Client</b></size></color>\n<size:10><i>Utilisateur Final</i></size>\n<size:9>Consultation</size>" as Customer #LightCoral
+
+rectangle "<color:#2E86AB><size:14><b>SYSTÈME DE GESTION DE PHARMACIE</b></size></color>\n<size:12><i>Modules Fonctionnels Intégrés</i></size>" as PharmacySystem #F8F9FA {
+
+  package "<color:#E74C3C><b>💰 GESTION DES VENTES</b></color>" as SalesPackage #FDEDEC {
+    usecase "<b>Créer Vente</b>\n<size:9>Transaction client</size>" as UC_CreateSale #F1948A
+    usecase "<b>Modifier Vente</b>\n<size:9>Correction</size>" as UC_ModifySale #F1948A
+    usecase "<b>Supprimer Vente</b>\n<size:9>Annulation</size>" as UC_DeleteSale #EC7063
+    usecase "<b>Consulter Ventes</b>\n<size:9>Historique</size>" as UC_ViewSales #F1948A
+    usecase "<b>Gérer Paiements</b>\n<size:9>Encaissement</size>" as UC_ManagePayments #F1948A
+    usecase "<b>Imprimer Reçu</b>\n<size:9>Documentation</size>" as UC_PrintReceipt #F1948A
+  }
+
+  package "<color:#8E44AD><b>👥 GESTION DES CLIENTS</b></color>" as CustomerPackage #F4F0FF {
+    usecase "<b>Ajouter Client</b>\n<size:9>Nouveau profil</size>" as UC_AddCustomer #BB8FCE
+    usecase "<b>Modifier Client</b>\n<size:9>Mise à jour</size>" as UC_ModifyCustomer #BB8FCE
+    usecase "<b>Consulter Historique</b>\n<size:9>Achats passés</size>" as UC_ViewCustomerHistory #BB8FCE
+    usecase "<b>Gérer Crédit</b>\n<size:9>Limite & solde</size>" as UC_ManageCredit #BB8FCE
+  }
+
+  package "<color:#F39C12><b>🛒 GESTION DES ACHATS</b></color>" as PurchasePackage #FEF9E7 {
+    usecase "<b>Créer Commande</b>\n<size:9>Bon d'achat</size>" as UC_CreatePurchase #F8C471
+    usecase "<b>Recevoir Marchandises</b>\n<size:9>Livraison</size>" as UC_ReceiveGoods #F8C471
+    usecase "<b>Gérer Fournisseurs</b>\n<size:9>Partenaires</size>" as UC_ManageSuppliers #F8C471
+    usecase "<b>Consulter Achats</b>\n<size:9>Historique</size>" as UC_ViewPurchases #F8C471
+  }
+
+  package "<color:#27AE60><b>📦 GESTION DES STOCKS</b></color>" as InventoryPackage #E8F8F5 {
+    usecase "<b>Consulter Stock</b>\n<size:9>Inventaire</size>" as UC_ViewInventory #82E0AA
+    usecase "<b>Ajuster Stock</b>\n<size:9>Correction</size>" as UC_AdjustStock #82E0AA
+    usecase "<b>Alertes Stock Bas</b>\n<size:9>Notifications</size>" as UC_LowStockAlerts #52BE80
+    usecase "<b>Historique Mouvements</b>\n<size:9>Traçabilité</size>" as UC_StockMovements #82E0AA
+    usecase "<b>Gérer Expiration</b>\n<size:9>Péremption</size>" as UC_ManageExpiry #82E0AA
+  }
+
+  package "<color:#3498DB><b>💊 GESTION DES MÉDICAMENTS</b></color>" as MedicinePackage #EBF3FD {
+    usecase "<b>Rechercher Médicament</b>\n<size:9>Catalogue</size>" as UC_SearchMedicine #7FB3D3
+    usecase "<b>Consulter Catalogue</b>\n<size:9>Base complète</size>" as UC_ViewCatalog #7FB3D3
+    usecase "<b>Scanner Code-barres</b>\n<size:9>Identification</size>" as UC_ScanBarcode #7FB3D3
+  }
+
+  package "<color:#9B59B6><b>👨‍💼 GESTION DES EMPLOYÉS</b></color>" as EmployeePackage #F4ECF7 {
+    usecase "<b>Ajouter Employé</b>\n<size:9>Recrutement</size>" as UC_AddEmployee #C39BD3
+    usecase "<b>Modifier Permissions</b>\n<size:9>Droits d'accès</size>" as UC_ModifyPermissions #C39BD3
+    usecase "<b>Gérer Utilisateurs</b>\n<size:9>Administration</size>" as UC_ManageUsers #C39BD3
+    usecase "<b>Assigner Rôles</b>\n<size:9>Responsabilités</size>" as UC_AssignRoles #C39BD3
+  }
+
+  package "<color:#E67E22><b>📊 RAPPORTS & ANALYTICS</b></color>" as ReportsPackage #FDF2E9 {
+    usecase "<b>Rapport Ventes</b>\n<size:9>Chiffre d'affaires</size>" as UC_SalesReport #F5B041
+    usecase "<b>Rapport Financier</b>\n<size:9>Comptabilité</size>" as UC_FinancialReport #F5B041
+    usecase "<b>Analyse Stocks</b>\n<size:9>Optimisation</size>" as UC_InventoryAnalysis #F5B041
+    usecase "<b>Tableau de Bord</b>\n<size:9>KPIs temps réel</size>" as UC_Dashboard #F5B041
+    usecase "<b>KPIs Pharmacie</b>\n<size:9>Indicateurs</size>" as UC_PharmacyKPIs #F5B041
+  }
+
+  package "<color:#17A2B8><b>🔐 AUTHENTIFICATION</b></color>" as AuthPackage #D6EAF8 {
+    usecase "<b>Se Connecter</b>\n<size:9>Login sécurisé</size>" as UC_Login #5DADE2
+    usecase "<b>Gérer Mot de Passe</b>\n<size:9>Sécurité</size>" as UC_ManagePassword #5DADE2
+    usecase "<b>Gérer Session</b>\n<size:9>Authentification</size>" as UC_ManageSession #5DADE2
+}
+
+' Relations simplifiées par package pour éviter l'accumulation de flèches
+
+' === PHARMACIEN - ACCÈS COMPLET (Flèches bleues épaisses) ===
+Pharmacist -[#2E86AB,thickness=2]-> SalesPackage : "<b>Gestion Complète</b>"
+Pharmacist -[#2E86AB,thickness=2]-> CustomerPackage : "<b>Administration Clients</b>"
+Pharmacist -[#2E86AB,thickness=2]-> PurchasePackage : "<b>Gestion Achats</b>"
+Pharmacist -[#2E86AB,thickness=2]-> InventoryPackage : "<b>Contrôle Stocks</b>"
+Pharmacist -[#2E86AB,thickness=2]-> MedicinePackage : "<b>Catalogue Médicaments</b>"
+Pharmacist -[#2E86AB,thickness=2]-> EmployeePackage : "<b>Administration RH</b>"
+Pharmacist -[#2E86AB,thickness=2]-> ReportsPackage : "<b>Rapports Stratégiques</b>"
+Pharmacist -[#2E86AB,thickness=1]-> AuthPackage : "<b>Authentification</b>"
+
+' === MANAGER - ACCÈS GESTION (Flèches violettes moyennes) ===
+Manager -[#A23B72,thickness=2]-> SalesPackage : "<b>Supervision Ventes</b>"
+Manager -[#A23B72,thickness=2]-> CustomerPackage : "<b>Gestion Clients</b>"
+Manager -[#A23B72,thickness=2]-> PurchasePackage : "<b>Commandes</b>"
+Manager -[#A23B72,thickness=1]-> InventoryPackage : "<b>Consultation Stocks</b>"
+Manager -[#A23B72,thickness=1]-> MedicinePackage : "<b>Recherche</b>"
+Manager -[#A23B72,thickness=1]-> ReportsPackage : "<b>Analyses</b>"
+Manager -[#A23B72,thickness=1]-> AuthPackage : "<b>Connexion</b>"
+
+' === EMPLOYÉ - ACCÈS OPÉRATIONNEL (Flèches orange fines) ===
+Employee -[#F18F01,thickness=1]-> SalesPackage : "<b>Ventes Quotidiennes</b>"
+Employee -[#F18F01,thickness=1]-> CustomerPackage : "<b>Service Client</b>"
+Employee -[#F18F01,thickness=1]-> InventoryPackage : "<b>Consultation</b>"
+Employee -[#F18F01,thickness=1]-> MedicinePackage : "<b>Recherche Produits</b>"
+Employee -[#F18F01,thickness=1]-> AuthPackage : "<b>Session</b>"
+
+' === CLIENT - ACCÈS CONSULTATION (Flèche rouge pointillée) ===
+Customer -[#C73E1D,dashed]-> UC_ViewCustomerHistory : "<b>Historique Personnel</b>"
+
+' Relations fonctionnelles entre cas d'utilisation
+UC_CreateSale <.. UC_ManagePayments : <<include>>
+UC_CreateSale <.. UC_SearchMedicine : <<include>>
+UC_CreateSale <.. UC_AdjustStock : <<include>>
+UC_ReceiveGoods <.. UC_AdjustStock : <<include>>
+UC_ViewInventory <.. UC_LowStockAlerts : <<extend>>
+UC_SearchMedicine <.. UC_ScanBarcode : <<extend>>
+
+' Légende des niveaux d'accès
+legend top left
+|<color:#2E86AB>■</color>| **PHARMACIEN** | Accès complet à tous les modules |
+|<color:#A23B72>■</color>| **MANAGER** | Gestion opérationnelle et supervision |
+|<color:#F18F01>■</color>| **EMPLOYÉ** | Opérations quotidiennes de base |
+|<color:#C73E1D>■</color>| **CLIENT** | Consultation limitée (historique personnel) |
+|**――――**| **Épaisseur des flèches** | Indique le niveau de privilège |
+|**- - - -**| **Flèches pointillées** | Accès restreint ou consultation |
+endlegend
+
+note as AccessNote
+<color:#2E86AB><b>HIÉRARCHIE DES ACCÈS</b></color>
+• <color:#2E86AB><b>Pharmacien</b></color> : Propriétaire, accès illimité
+• <color:#A23B72><b>Manager</b></color> : Supervision et gestion
+• <color:#F18F01><b>Employé</b></color> : Opérations courantes
+• <color:#C73E1D><b>Client</b></color> : Consultation personnelle
+end note
+
+@enduml

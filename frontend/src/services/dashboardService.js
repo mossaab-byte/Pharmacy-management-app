@@ -5,7 +5,8 @@ const dashboardService = {
   // Récupérer les KPIs principales
   getKpis: async () => {
     try {
-      const response = await apiClient.get('/dashboard/kpis/');
+      const response = await apiClient.get(`/dashboard/kpis/?_t=${Date.now()}`);
+      console.log('🔍 KPIs API response:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des KPIs:', error);
@@ -38,7 +39,7 @@ const dashboardService = {
   // Récupérer les ventes récentes
   getRecentSales: async (limit = 10) => {
     try {
-      const response = await apiClient.get(`/sales/?limit=${limit}&ordering=-created_at`);
+      const response = await apiClient.get(`/dashboard/sales/?limit=${limit}&ordering=-created_at`);
       return Array.isArray(response.data) ? response.data : response.data.results || [];
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des ventes récentes:', error);

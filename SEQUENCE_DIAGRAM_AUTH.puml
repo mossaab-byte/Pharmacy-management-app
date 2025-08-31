@@ -1,0 +1,121 @@
+@startuml Pharmacy Management System - User Authentication Sequence Diagram
+
+title User Authentication & Authorization Process
+
+actor "User" as User
+participant "Frontend\n(React)" as Frontend
+participant "Auth API\n(Django REST)" as AuthAPI
+participant "JWT Service" as JWT
+participant "Database" as DB
+
+== User Registration Process ==
+
+User -> Frontend: Register new user
+Frontend -> AuthAPI: POST /api/register/\n{username, email, password, pharmacy_data}
+
+activate AuthAPI
+AuthAPI -> DB: Check if user exists
+DB -> AuthAPI: User validation result
+
+alt User doesn't exist
+  AuthAPI -> DB: Create PharmacyUser
+  DB -> AuthAPI: User created
+  
+  alt First user for pharmacy
+    AuthAPI -> DB: Set user as pharmacist\n(full permissions)
+    DB -> AuthAPI: Permissions set
+  else
+    AuthAPI -> DB: Set user as employee\n(basic permissions)
+    DB -> AuthAPI: Basic permissions set
+  end
+  
+  AuthAPI -> JWT: Generate JWT tokens
+  JWT -> AuthAPI: Access & refresh tokens
+  AuthAPI -> Frontend: Registration successful\n+ tokens
+  
+else User already exists
+  AuthAPI -> Frontend: Error: User already exists
+end
+
+deactivate AuthAPI
+
+Frontend -> User: Registration result
+
+== User Login Process ==
+
+User -> Frontend: Enter credentials
+Frontend -> AuthAPI: POST /api/token/\n{username, password}
+
+activate AuthAPI
+AuthAPI -> DB: Validate credentials
+DB -> AuthAPI: User data
+
+alt Valid credentials
+  AuthAPI -> JWT: Generate JWT tokens
+  JWT -> AuthAPI: Access & refresh tokens
+  
+  AuthAPI -> DB: Get user permissions\n& pharmacy info
+  DB -> AuthAPI: User permissions
+  
+  AuthAPI -> Frontend: Login successful\n+ tokens + user data
+  Frontend -> Frontend: Store tokens\n& user data
+  Frontend -> User: Redirect to dashboard
+  
+else Invalid credentials
+  AuthAPI -> Frontend: Error: Invalid credentials
+  Frontend -> User: Display error message
+end
+
+deactivate AuthAPI
+
+== Permission-Based Access Control ==
+
+User -> Frontend: Access protected feature\n(e.g., inventory management)
+Frontend -> Frontend: Check user permissions\n(can_manage_inventory)
+
+alt User has permission
+  Frontend -> AuthAPI: GET /api/pharmacy/inventory/\nAuthorization: Bearer {token}
+  
+  activate AuthAPI
+  AuthAPI -> JWT: Validate token
+  JWT -> AuthAPI: Token valid + user data
+  
+  AuthAPI -> DB: Check user pharmacy\n& permissions
+  DB -> AuthAPI: Permission granted
+  
+  AuthAPI -> DB: Query inventory data
+  DB -> AuthAPI: Inventory data
+  AuthAPI -> Frontend: Inventory response
+  deactivate AuthAPI
+  
+  Frontend -> User: Display inventory
+  
+else User lacks permission
+  Frontend -> User: Access denied message
+end
+
+== Token Refresh Process ==
+
+Frontend -> Frontend: Access token expired
+Frontend -> AuthAPI: POST /api/token/refresh/\n{refresh_token}
+
+activate AuthAPI
+AuthAPI -> JWT: Validate refresh token
+JWT -> AuthAPI: Token validation result
+
+alt Refresh token valid
+  AuthAPI -> JWT: Generate new access token
+  JWT -> AuthAPI: New access token
+  AuthAPI -> Frontend: New access token
+  Frontend -> Frontend: Update stored token
+  Frontend -> Frontend: Retry original request
+  
+else Refresh token invalid/expired
+  AuthAPI -> Frontend: Token refresh failed
+  Frontend -> Frontend: Clear stored tokens
+  Frontend -> User: Redirect to login
+end
+
+deactivate AuthAPI
+
+@enduml

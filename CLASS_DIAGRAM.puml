@@ -1,0 +1,247 @@
+@startuml Pharmacy Management System - Class Diagram
+
+!define ENTITY_COLOR #E1F5FE
+!define SERVICE_COLOR #FFF3E0
+!define MODEL_COLOR #E8F5E8
+
+package "Authentication & User Management" as Auth {
+  class PharmacyUser {
+    +UUID id
+    +String username
+    +String email
+    +String first_name
+    +String last_name
+    +String phone
+    +Boolean is_pharmacist
+    +Boolean is_manager
+    +Boolean is_customer
+    +Boolean can_manage_inventory
+    +Boolean can_manage_sales
+    +Boolean can_manage_purchases
+    +Boolean can_manage_users
+    +Boolean can_view_reports
+    +DateTime created_at
+    --
+    +String get_user_type()
+    +void save()
+  }
+}
+
+package "Core Pharmacy Domain" as Core {
+  class Pharmacy {
+    +UUID id
+    +String name
+    +String address
+    +String phone
+    +JSON open_hours
+    +DateTime created_at
+    --
+    +String __str__()
+  }
+
+  class Manager {
+    +UUID id
+    +Boolean can_modify_sales
+    +Boolean can_delete_sales
+    +Boolean can_modify_purchases
+    +Boolean can_delete_purchases
+    +Boolean can_view_reports
+    +Boolean can_manage_suppliers
+    +Boolean can_manage_inventory
+    +Boolean can_manage_customers
+    +DateTime created_at
+    +DateTime updated_at
+    --
+    +String __str__()
+  }
+
+  class Medicine {
+    +Integer id
+    +String code
+    +String nom
+    +String dci1
+    +String dosage1
+    +String unite_dosage1
+    +String forme
+    +String presentation
+    +Decimal ppv
+    +String princeps_type
+    +String type
+    --
+    +String __str__()
+  }
+
+  class PharmacyMedicine {
+    +UUID id
+    +Integer quantity
+    +Integer minimum_stock_level
+    +Decimal prix_achat
+    +Decimal prix_vente
+    +Date expiry_date
+    +Boolean is_active
+    +DateTime updated_at
+    --
+    +Boolean reduce_stock(amount, user, reason, reference)
+    +Boolean add_stock(amount, user, reason, reference)
+    +String get_status()
+    +Boolean is_low_stock()
+    +Boolean is_expired()
+  }
+}
+
+package "Sales Management" as Sales {
+  class Customer {
+    +UUID id
+    +String phone
+    +String address
+    +Decimal credit_limit
+    +Boolean is_active
+    +String notes
+    +DateTime created_at
+    +DateTime updated_at
+    --
+    +Decimal balance()
+    +Decimal available_credit()
+    +Decimal total_purchases()
+    +Integer sales_count()
+    +DateTime last_purchase_date()
+    +Boolean can_buy_on_credit(amount)
+    +QuerySet get_payment_history()
+    +QuerySet get_sales_history()
+  }
+
+  class Sale {
+    +UUID id
+    +Decimal total_amount
+    +Integer units_sold
+    +DateTime created_at
+    --
+    +String reference()
+    +Decimal calculate_total()
+    +void update_totals()
+    +void finalize()
+    +String __str__()
+  }
+
+  class SaleItem {
+    +UUID id
+    +Integer quantity
+    +Decimal unit_price
+    +Decimal subtotal
+    --
+    +void save()
+  }
+
+  class Payment {
+    +UUID id
+    +Decimal amount
+    +String method
+    +DateTime created_at
+    --
+    +String __str__()
+  }
+}
+
+package "Purchase Management" as Purchases {
+  class Supplier {
+    +UUID id
+    +String name
+    +String contact_person
+    +String contact_email
+    +String contact_phone
+    +String address
+    +String city
+    +String state
+    +String postal_code
+    +String country
+    +String tax_id
+    +String license_number
+    +String drug_license
+    +String certification
+    +Decimal credit_limit
+    +Decimal current_balance
+    +String payment_terms
+    +String delivery_schedule
+    +Decimal minimum_order
+    +Decimal discount_rate
+    +String notes
+    --
+    +void update_balance()
+    +String __str__()
+  }
+
+  class Purchase {
+    +UUID id
+    +Decimal total_amount
+    +DateTime created_at
+    --
+    +void finalize()
+    +void delete()
+    +String __str__()
+  }
+
+  class PurchaseItem {
+    +UUID id
+    +Integer quantity
+    +Decimal unit_cost
+    +Decimal subtotal
+    --
+    +void save()
+    +String __str__()
+  }
+
+  class SupplierTransaction {
+    +UUID id
+    +String type
+    +Decimal amount
+    +String reference
+    +DateTime date
+    +Decimal running_balance
+    --
+    +String __str__()
+  }
+}
+
+package "Inventory Management" as Inventory {
+  class InventoryLog {
+    +UUID id
+    +String transaction_type
+    +Integer quantity_changed
+    +Integer old_quantity
+    +Integer new_quantity
+    +String reason
+    +DateTime timestamp
+    --
+    +String __str__()
+  }
+}
+
+' Relationships
+PharmacyUser ||--o{ Pharmacy : "owns/works at"
+Pharmacy ||--o{ Manager : "has managers"
+PharmacyUser ||--o{ Manager : "user permissions"
+Pharmacy ||--o{ PharmacyMedicine : "has inventory"
+Medicine ||--o{ PharmacyMedicine : "medicine details"
+
+PharmacyUser ||--o{ Customer : "customer profile"
+Pharmacy ||--o{ Sale : "pharmacy sales"
+Customer ||--o{ Sale : "customer purchases"
+PharmacyUser ||--o{ Sale : "served by"
+Sale ||--o{ SaleItem : "contains items"
+PharmacyMedicine ||--o{ SaleItem : "medicine sold"
+Sale ||--o{ Payment : "payments received"
+
+Pharmacy ||--o{ Supplier : "pharmacy suppliers"
+Pharmacy ||--o{ Purchase : "pharmacy purchases"
+Supplier ||--o{ Purchase : "supplier deliveries"
+PharmacyUser ||--o{ Purchase : "received by"
+Purchase ||--o{ PurchaseItem : "contains items"
+Medicine ||--o{ PurchaseItem : "medicine purchased"
+Supplier ||--o{ SupplierTransaction : "financial transactions"
+
+PharmacyMedicine ||--o{ InventoryLog : "stock movements"
+PharmacyUser ||--o{ InventoryLog : "performed by"
+Sale ||--o{ InventoryLog : "reference sale"
+Purchase ||--o{ InventoryLog : "reference purchase"
+
+@enduml

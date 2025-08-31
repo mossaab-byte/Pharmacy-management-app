@@ -3,13 +3,18 @@ import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const [user, setUser] = useState(null);
+  const [pharmacyName, setPharmacyName] = useState('Mophar'); // Default fallback
   const navigate = useNavigate();
 
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        if (userData.pharmacy_name) {
+          setPharmacyName(userData.pharmacy_name);
+        }
       }
     } catch (error) {
       console.error('Error parsing user from localStorage:', error);
@@ -30,7 +35,7 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">
-              Mophar
+              {pharmacyName}
             </h1>
           </div>
           

@@ -1,0 +1,53 @@
+@startuml Medicine Management Use Cases
+
+title Medicine & Inventory Management
+
+left to right direction
+
+actor "Pharmacist" as pharmacist
+actor "Manager" as manager
+
+package "Medicine Management" {
+  usecase "Search Medicines" as UC1
+  usecase "View Medicine Details" as UC2
+  usecase "Check Stock Level" as UC6
+}
+
+package "Inventory Management" {
+  usecase "View Inventory" as UC7
+  usecase "Add Medicine" as UC3
+  usecase "Update Medicine" as UC4
+  usecase "Delete Medicine" as UC5
+  usecase "Update Stock" as UC8
+  usecase "Generate Stock Alert" as UC9
+  usecase "View Stock Reports" as UC10
+}
+
+' Pharmacist relationships
+pharmacist --> UC1
+pharmacist --> UC2
+pharmacist --> UC6
+pharmacist --> UC7
+pharmacist --> UC3
+pharmacist --> UC4
+pharmacist --> UC8
+pharmacist --> UC9
+
+' Manager relationships
+manager --> UC1
+manager --> UC2
+manager --> UC6
+manager --> UC7
+manager --> UC3
+manager --> UC4
+manager --> UC5
+manager --> UC8
+manager --> UC9
+manager --> UC10
+
+' Include relationships
+UC3 ..> UC8 : <<include>>
+UC4 ..> UC8 : <<include>>
+UC9 ..> UC6 : <<include>>
+
+@enduml

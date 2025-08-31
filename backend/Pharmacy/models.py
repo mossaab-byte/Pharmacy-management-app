@@ -76,14 +76,15 @@ class PharmacyMedicine(models.Model):
     def reduce_stock(self, amount, user=None, reason="SALE", reference_transaction=None):
         # Local import to avoid circular dependencies
         from Inventory.models import InventoryLog
+        from Sales.models import Sale
         if self.quantity < amount:
             return False
         old_quantity = self.quantity
         self.quantity -= amount
         self.units_sold += amount  # Fix: increment by amount sold, not by 1
         self.save()
-        # Distinguish sale vs return by presence of 'items'
-        is_sale = reference_transaction and hasattr(reference_transaction, 'items')
+        # Distinguish sale vs return using proper type check
+        is_sale = reference_transaction and isinstance(reference_transaction, Sale)
         InventoryLog.objects.create(
             pharmacy_medicine=self,
             transaction_type='OUT',
@@ -99,11 +100,12 @@ class PharmacyMedicine(models.Model):
 
     def add_stock(self, amount, user=None, reason="PURCHASE", reference_transaction=None):
         from Inventory.models import InventoryLog
+        from Purchases.models import Purchase
         old_quantity = self.quantity
         self.quantity += amount
         self.save()
-        # Distinguish purchase vs sale return
-        is_purchase = reference_transaction and not hasattr(reference_transaction, 'items')
+        # Distinguish purchase vs sale return using proper type check
+        is_purchase = reference_transaction and isinstance(reference_transaction, Purchase)
         InventoryLog.objects.create(
             pharmacy_medicine=self,
             transaction_type='IN',

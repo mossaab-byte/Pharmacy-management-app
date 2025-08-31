@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { Card, Input, Button, LoadingSpinner, ErrorMessage, Modal } from '../../components/UI';
+import DataRefreshButton from '../../components/UI/DataRefreshButton';
+import EmergencyFixButton from '../../components/UI/EmergencyFixButton';
 import { useNotification } from '../../context/NotificationContext';
 import supplierService from '../../services/supplierService';
 import { Plus, Edit, Trash2, DollarSign, CreditCard, Phone, Mail, MapPin, Building, Search, ArrowLeft } from 'lucide-react';
@@ -30,8 +32,6 @@ const SupplierManagementPage = () => {
     state: '',
     postal_code: '',
     country: '',
-    tax_id: '',
-    license_number: '',
     credit_limit: '0',
     payment_terms: '',
     minimum_order: '0',
@@ -47,7 +47,10 @@ const SupplierManagementPage = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🔍 SUPPLIER PAGE: Fetching suppliers...');
       const response = await supplierService.getAll();
+      console.log('🔍 SUPPLIER PAGE: Response received:', response);
+      console.log('🔍 SUPPLIER PAGE: Results array:', response.results);
       setSuppliers(response.results || []);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
@@ -141,7 +144,17 @@ const SupplierManagementPage = () => {
   );
 
   const formatCurrency = (amount) => {
-    if (typeof amount !== 'number') return '0.00 DH';
+    console.log('🔍 SUPPLIER PAGE: formatCurrency called with:', amount, typeof amount);
+    if (typeof amount !== 'number') {
+      const parsed = parseFloat(amount);
+      if (isNaN(parsed)) {
+        console.log('🔍 SUPPLIER PAGE: Invalid amount, returning 0.00 DH');
+        return '0.00 DH';
+      }
+      console.log('🔍 SUPPLIER PAGE: Parsed amount:', parsed);
+      return `${parsed.toFixed(2)} DH`;
+    }
+    console.log('🔍 SUPPLIER PAGE: Valid number amount:', amount);
     return `${amount.toFixed(2)} DH`;
   };
 
@@ -174,13 +187,21 @@ const SupplierManagementPage = () => {
               <p className="text-gray-600">Manage your suppliers and their credit terms</p>
             </div>
           </div>
-          <Button
-            onClick={handleAddSupplier}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Supplier
-          </Button>
+          <div className="flex items-center gap-3">
+            <EmergencyFixButton />
+            <DataRefreshButton 
+              onRefresh={fetchSuppliers}
+              loading={loading}
+              label="Refresh Suppliers"
+            />
+            <Button
+              onClick={handleAddSupplier}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Supplier
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -397,25 +418,6 @@ const SupplierManagementPage = () => {
                   value={formData.country}
                   onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
                   placeholder="Enter country"
-                />
-              </div>
-            </div>
-
-            {/* Business Information */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Tax ID"
-                  value={formData.tax_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tax_id: e.target.value }))}
-                  placeholder="Enter tax identification number"
-                />
-                <Input
-                  label="License Number"
-                  value={formData.license_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, license_number: e.target.value }))}
-                  placeholder="Enter business license number"
                 />
               </div>
             </div>

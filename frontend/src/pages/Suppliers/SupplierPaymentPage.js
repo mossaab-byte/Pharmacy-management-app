@@ -49,8 +49,19 @@ const SupplierPaymentPage = () => {
 
   const fetchTransactions = async () => {
     try {
+      console.log('🔍 PAYMENT PAGE: Fetching transactions for supplier:', id);
       const data = await supplierService.getTransactions(id);
-      setTransactions(data || []);
+      console.log('🔍 PAYMENT PAGE: Transactions received:', data);
+      
+      // Ensure we have an array and add debugging for each transaction
+      const transactionArray = Array.isArray(data) ? data : (data?.results || []);
+      console.log('🔍 PAYMENT PAGE: Processed transactions array:', transactionArray);
+      
+      if (transactionArray.length > 0) {
+        console.log('🔍 PAYMENT PAGE: First transaction sample:', transactionArray[0]);
+      }
+      
+      setTransactions(transactionArray);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       setTransactions([]);
@@ -100,9 +111,58 @@ const SupplierPaymentPage = () => {
     }
   };
 
+  const handleReduceCredit = async (amount, reference) => {
+    try {
+      setSubmitting(true);
+      await supplierService.reduceCredit(id, { amount, reference });
+      
+      // Refresh data
+      await Promise.all([fetchSupplierData(), fetchTransactions()]);
+      
+      addNotification({
+        type: 'success',
+        message: `Credit reduced by ${formatCurrency(amount)}`
+      });
+    } catch (error) {
+      console.error('Error reducing credit:', error);
+      addNotification({
+        type: 'error',
+        message: `Failed to reduce credit: ${error.message}`
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResetCredit = async (reference) => {
+    try {
+      setSubmitting(true);
+      const oldBalance = supplier.current_balance;
+      await supplierService.resetCredit(id, { reference });
+      
+      // Refresh data
+      await Promise.all([fetchSupplierData(), fetchTransactions()]);
+      
+      addNotification({
+        type: 'success',
+        message: `Credit reset from ${formatCurrency(oldBalance)} to 0.00 DH`
+      });
+    } catch (error) {
+      console.error('Error resetting credit:', error);
+      addNotification({
+        type: 'error',
+        message: `Failed to reset credit: ${error.message}`
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
-    if (typeof amount !== 'number') return '0.00 DH';
-    return `${amount.toFixed(2)} DH`;
+    // Handle string and number values properly
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '0.00 DH';
+    return `${numAmount.toFixed(2)} DH`;
   };
 
   const formatDate = (dateString) => {
@@ -201,13 +261,46 @@ const SupplierPaymentPage = () => {
               <p className="text-gray-600">{supplier.name}</p>
             </div>
           </div>
-          <Button
-            onClick={() => setShowPaymentModal(true)}
-            className="flex items-center gap-2"
-          >
-            <DollarSign className="w-4 h-4" />
-            Record Payment
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setShowPaymentModal(true)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              <DollarSign className="w-4 h-4" />
+              Record Payment
+            </Button>
+            {supplier.current_balance > 0 && (
+              <>
+                <Button
+                  onClick={() => {
+                    const amount = prompt(`Enter amount to reduce from current balance (${formatCurrency(supplier.current_balance)}):`);
+                    if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
+                      const reference = prompt('Enter reference (optional):') || `Credit reduction - ${amount}`;
+                      handleReduceCredit(parseFloat(amount), reference);
+                    }
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2 border-orange-300 text-orange-600 hover:bg-orange-50"
+                >
+                  <Minus className="w-4 h-4" />
+                  Reduce Credit
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (confirm(`Reset credit balance from ${formatCurrency(supplier.current_balance)} to 0.00 DH?`)) {
+                      const reference = prompt('Enter reference (optional):') || 'Full credit reset';
+                      handleResetCredit(reference);
+                    }
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2 border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  Reset Credit
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -268,12 +361,12 @@ const SupplierPaymentPage = () => {
                         style={{ width: `${Math.min(getCreditUtilization(), 100)}%` }}
                       />
                     </div>
-                    <span className={`text-sm font-medium ${creditStatus.color}`}>
+                    <span className={`text-sm font-medium ${getCreditStatus().color}`}>
                       {getCreditUtilization().toFixed(1)}%
                     </span>
                   </div>
-                  <p className={`text-xs mt-1 ${creditStatus.color}`}>
-                    Status: {creditStatus.status}
+                  <p className={`text-xs mt-1 ${getCreditStatus().color}`}>
+                    Status: {getCreditStatus().status}
                   </p>
                 </div>
 

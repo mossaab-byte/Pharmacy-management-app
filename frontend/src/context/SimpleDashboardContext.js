@@ -26,10 +26,13 @@ export function DashboardProvider({ children }) {
       // Only fetch KPIs for now since we know this works
       const token = localStorage.getItem('access_token') || localStorage.getItem('token');
       
+      console.log('🔍 DASHBOARD: Fetching KPIs with token:', !!token);
+      
       const kpisResponse = await fetch('http://localhost:8000/api/dashboard/kpis/', {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
       });
 
@@ -38,6 +41,9 @@ export function DashboardProvider({ children }) {
       }
 
       const kpis = await kpisResponse.json();
+      
+      console.log('🔍 DASHBOARD: Raw KPIs response:', kpis);
+      console.log('🔍 DASHBOARD: totalPurchases value:', kpis.totalPurchases, typeof kpis.totalPurchases);
 
       // Try to fetch other endpoints, but don't fail if they don't work
       let topProducts = [];
@@ -73,12 +79,33 @@ export function DashboardProvider({ children }) {
         console.warn('Revenue trend API not available:', e);
       }
 
+      try {
+        const inventoryResponse = await fetch('http://localhost:8000/api/pharmacy/pharmacy-medicines/full-inventory/', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (inventoryResponse.ok) {
+          const inventoryData = await inventoryResponse.json();
+          inventory = Array.isArray(inventoryData) ? inventoryData : inventoryData.results || [];
+          console.log('✅ DASHBOARD: Inventory data fetched:', inventory.length, 'items');
+        }
+      } catch (e) {
+        console.warn('Inventory API not available:', e);
+      }
+
       setDashboardData({
         kpis,
         topProducts: Array.isArray(topProducts) ? topProducts : topProducts.results || [],
         revenueTrend: Array.isArray(revenueTrend) ? revenueTrend : revenueTrend.results || [],
         sales,
         inventory,
+      });
+
+      console.log('🔍 DASHBOARD: Data set in context:', {
+        kpis,
+        totalPurchases: kpis.totalPurchases
       });
 
     } catch (err) {
@@ -96,6 +123,19 @@ export function DashboardProvider({ children }) {
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Listen for inventory update events from sales or other operations
+    const handleInventoryUpdate = (event) => {
+      console.log('🔄 Inventory update event received:', event.detail);
+      // Refresh dashboard data when inventory is updated
+      fetchDashboardData(true);
+    };
+    
+    window.addEventListener('inventoryUpdated', handleInventoryUpdate);
+    
+    return () => {
+      window.removeEventListener('inventoryUpdated', handleInventoryUpdate);
+    };
   }, []);
 
   return (

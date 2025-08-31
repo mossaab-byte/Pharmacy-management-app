@@ -1,0 +1,204 @@
+@startuml Inventory Management - Simplified Use Cases
+
+!define PRIMARY_COLOR #27AE60
+!define SECONDARY_COLOR #3498DB
+!define SUCCESS_COLOR #2ECC71
+!define WARNING_COLOR #F39C12
+
+title <color:#27AE60><size:16><b>📦 GESTION DES STOCKS</b></size></color>\n<size:12><i>Diagramme Simplifié - Fonctions Essentielles</i></size>
+
+left to right direction
+
+actor "<color:#2E86AB><b>💊 Pharmacien</b></color>" as Pharmacist #E3F2FD
+actor "<color:#A23B72><b>👨‍💼 Manager</b></color>" as Manager #FCE4EC
+actor "<color:#F18F01><b>👩‍💼 Employé</b></color>" as Employee #FFF8E1
+actor "<color:#95A5A6><b>🤖 Système</b></color>" as System #F8F9FA
+
+rectangle "<color:#27AE60><b>MODULE GESTION STOCKS</b></color>" as InventoryModule #E8F8F5 {
+
+  package "<color:#3498DB><b>📋 Consultation Inventaire</b></color>" as ConsultPackage #EBF3FD {
+    usecase "<b>Consulter Stock</b>" as UC_ViewStock #7FB3D3
+    usecase "<b>Rechercher Produit</b>" as UC_SearchProduct #7FB3D3
+    usecase "<b>Historique Mouvements</b>" as UC_ViewHistory #7FB3D3
+  }
+
+  package "<color:#F39C12><b>⚙️ Gestion des Stocks</b></color>" as ManagementPackage #FEF9E7 {
+    usecase "<b>Ajuster Stock</b>" as UC_AdjustStock #F8C471
+    usecase "<b>Ajouter Stock</b>" as UC_AddStock #F8C471
+    usecase "<b>Définir Seuils</b>" as UC_SetThresholds #F8C471
+    usecase "<b>Mettre à Jour Prix</b>" as UC_UpdatePrices #F8C471
+  }
+
+  package "<color:#E74C3C><b>🚨 Alertes & Notifications</b></color>" as AlertsPackage #FDEDEC {
+    usecase "<b>Alertes Stock Bas</b>" as UC_LowStockAlert #F1948A
+    usecase "<b>Alertes Expiration</b>" as UC_ExpiryAlert #F1948A
+    usecase "<b>Stock Épuisé</b>" as UC_OutOfStockAlert #F1948A
+  }
+
+  package "<color:#9B59B6><b>⏰ Gestion Péremption</b></color>" as ExpiryPackage #F4ECF7 {
+    usecase "<b>Contrôler Expiration</b>" as UC_CheckExpiry #C39BD3
+    usecase "<b>Gérer Produits Périmés</b>" as UC_ManageExpired #C39BD3
+    usecase "<b>Rotation des Stocks</b>" as UC_StockRotation #C39BD3
+  }
+
+  package "<color:#17A2B8><b>📊 Rapports & Analyses</b></color>" as ReportsPackage #D6EAF8 {
+    usecase "<b>Rapport Stock</b>" as UC_StockReport #5DADE2
+    usecase "<b>Analyse Mouvements</b>" as UC_MovementAnalysis #5DADE2
+    usecase "<b>Valorisation Stock</b>" as UC_StockValuation #5DADE2
+  }
+}
+
+' Relations simplifiées par niveau d'accès
+Pharmacist -[#2E86AB,thickness=2]-> ConsultPackage : "<b>Consultation Complète</b>"
+Pharmacist -[#2E86AB,thickness=2]-> ManagementPackage : "<b>Gestion Totale</b>"
+Pharmacist -[#2E86AB,thickness=2]-> AlertsPackage : "<b>Configuration</b>"
+Pharmacist -[#2E86AB,thickness=2]-> ExpiryPackage : "<b>Administration</b>"
+Pharmacist -[#2E86AB,thickness=2]-> ReportsPackage : "<b>Analyses Avancées</b>"
+
+Manager -[#A23B72,thickness=2]-> ConsultPackage : "<b>Supervision</b>"
+Manager -[#A23B72,thickness=1]-> ManagementPackage : "<b>Ajustements</b>"
+Manager -[#A23B72,thickness=1]-> AlertsPackage : "<b>Surveillance</b>"
+Manager -[#A23B72,thickness=1]-> ExpiryPackage : "<b>Contrôle</b>"
+Manager -[#A23B72,thickness=1]-> ReportsPackage : "<b>Rapports</b>"
+
+Employee -[#F18F01,thickness=1]-> ConsultPackage : "<b>Consultation</b>"
+Employee -[#F18F01,thickness=1]-> UC_AdjustStock : "<b>Ajustements</b>"
+Employee -[#F18F01,thickness=1]-> AlertsPackage : "<b>Réception</b>"
+Employee -[#F18F01,thickness=1]-> UC_CheckExpiry : "<b>Vérification</b>"
+
+System -[#95A5A6,dashed]-> AlertsPackage : "<b>Génération Auto</b>"
+System -[#95A5A6,dashed]-> UC_CheckExpiry : "<b>Contrôle Auto</b>"
+
+' Relations fonctionnelles simplifiées
+UC_ViewStock ..> UC_SearchProduct : <<include>>
+UC_AdjustStock ..> UC_ViewHistory : <<include>>
+UC_AddStock ..> UC_SetThresholds : <<extend>>
+UC_LowStockAlert ..> UC_StockReport : <<extend>>
+UC_CheckExpiry ..> UC_ExpiryAlert : <<include>>
+
+' Légende claire
+legend bottom right
+|<color:#2E86AB>━━</color>| **Pharmacien** | Contrôle total des stocks |
+|<color:#A23B72>━━</color>| **Manager** | Supervision et rapports |
+|<color:#F18F01>━</color>| **Employé** | Opérations courantes |
+|<color:#95A5A6>┅┅</color>| **Système** | Automatisation |
+endlegend
+
+@enduml
+    usecase "Rapporter mouvement suspect\n(Report Suspicious Movement)" as UC_ReportSuspicious
+    usecase "Auditer inventaire\n(Audit Inventory)" as UC_AuditInventory
+    usecase "Générer rapport traçabilité\n(Generate Traceability Report)" as UC_TraceabilityReport
+  }
+
+  package "Rapports Inventaire" {
+    usecase "Rapport valorisation stock\n(Stock Valuation Report)" as UC_ValuationReport
+    usecase "Rapport rotation stock\n(Stock Turnover Report)" as UC_TurnoverReport
+    usecase "Analyse ABC\n(ABC Analysis)" as UC_ABCAnalysis
+    usecase "Rapport stocks morts\n(Dead Stock Report)" as UC_DeadStockReport
+    usecase "Prévisions stock\n(Stock Forecasting)" as UC_StockForecasting
+  }
+}
+
+' Pharmacist permissions (full access)
+Pharmacist --> UC_ViewGlobalInv
+Pharmacist --> UC_SearchInvMed
+Pharmacist --> UC_FilterCategory
+Pharmacist --> UC_SortInventory
+Pharmacist --> UC_ViewItemDetails
+Pharmacist --> UC_ViewMovements
+
+Pharmacist --> UC_ManualAdjust
+Pharmacist --> UC_AddStock
+Pharmacist --> UC_RemoveStock
+Pharmacist --> UC_TransferStock
+Pharmacist --> UC_SetMinStock
+Pharmacist --> UC_UpdatePrices
+
+Pharmacist --> UC_LowStockAlert
+Pharmacist --> UC_ExpiryAlert
+Pharmacist --> UC_OutOfStockAlert
+Pharmacist --> UC_AutoNotify
+Pharmacist --> UC_ConfigThresholds
+
+Pharmacist --> UC_ViewExpiry
+Pharmacist --> UC_MarkExpired
+Pharmacist --> UC_RemoveExpired
+Pharmacist --> UC_ExpiredReport
+Pharmacist --> UC_PlanRotation
+
+Pharmacist --> UC_ViewCompleteHistory
+Pharmacist --> UC_TraceMovement
+Pharmacist --> UC_ReportSuspicious
+Pharmacist --> UC_AuditInventory
+Pharmacist --> UC_TraceabilityReport
+
+Pharmacist --> UC_ValuationReport
+Pharmacist --> UC_TurnoverReport
+Pharmacist --> UC_ABCAnalysis
+Pharmacist --> UC_DeadStockReport
+Pharmacist --> UC_StockForecasting
+
+' Manager permissions (limited management)
+Manager --> UC_ViewGlobalInv
+Manager --> UC_SearchInvMed
+Manager --> UC_FilterCategory
+Manager --> UC_SortInventory
+Manager --> UC_ViewItemDetails
+Manager --> UC_ViewMovements
+
+Manager --> UC_ManualAdjust
+Manager --> UC_AddStock
+Manager --> UC_RemoveStock
+Manager --> UC_SetMinStock
+Manager --> UC_UpdatePrices
+
+Manager --> UC_LowStockAlert
+Manager --> UC_ExpiryAlert
+Manager --> UC_OutOfStockAlert
+Manager --> UC_AutoNotify
+
+Manager --> UC_ViewExpiry
+Manager --> UC_MarkExpired
+Manager --> UC_RemoveExpired
+Manager --> UC_ExpiredReport
+
+Manager --> UC_ViewCompleteHistory
+Manager --> UC_TraceMovement
+Manager --> UC_AuditInventory
+
+Manager --> UC_ValuationReport
+Manager --> UC_TurnoverReport
+Manager --> UC_ABCAnalysis
+
+' Employee permissions (read-only mostly)
+Employee --> UC_ViewGlobalInv
+Employee --> UC_SearchInvMed
+Employee --> UC_FilterCategory
+Employee --> UC_SortInventory
+Employee --> UC_ViewItemDetails
+
+Employee --> UC_LowStockAlert
+Employee --> UC_ExpiryAlert
+Employee --> UC_OutOfStockAlert
+
+Employee --> UC_ViewExpiry
+
+' System automated actions
+System --> UC_LowStockAlert
+System --> UC_ExpiryAlert
+System --> UC_OutOfStockAlert
+System --> UC_AutoNotify
+
+' Use case relationships
+UC_ViewGlobalInv <.. UC_SearchInvMed : <<extend>>
+UC_ViewGlobalInv <.. UC_FilterCategory : <<extend>>
+UC_ViewGlobalInv <.. UC_SortInventory : <<extend>>
+UC_ViewItemDetails ..> UC_ViewMovements : <<include>>
+UC_ManualAdjust <.. UC_AddStock : <<extend>>
+UC_ManualAdjust <.. UC_RemoveStock : <<extend>>
+UC_LowStockAlert ..> UC_AutoNotify : <<include>>
+UC_ExpiryAlert ..> UC_AutoNotify : <<include>>
+UC_ViewExpiry ..> UC_MarkExpired : <<include>>
+UC_AuditInventory ..> UC_TraceabilityReport : <<include>>
+
+@enduml

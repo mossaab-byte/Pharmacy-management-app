@@ -14,7 +14,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PharmacyUser
-        fields = ['username', 'email', 'password', 'password_confirm']
+        fields = ['username', 'email', 'password', 'password_confirm', 'first_name', 'last_name']
 
     def validate(self, data):
         if data['password'] != data['password_confirm']:
@@ -27,6 +27,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
         )
         user.is_pharmacist = True  # Automatically pharmacist
         user.save()
@@ -41,8 +43,16 @@ class PharmacyRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Get the authenticated user from request context
         pharmacist = self.context['request'].user
+        
         # Create pharmacy with pharmacist relationship
-        return Pharmacy.objects.create(pharmacist=pharmacist, **validated_data)
+        pharmacy = Pharmacy.objects.create(pharmacist=pharmacist, **validated_data)
+        
+        # CRITICAL FIX: Also update the user's pharmacy field
+        pharmacist.pharmacy = pharmacy
+        pharmacist.is_pharmacist = True  # Ensure they have pharmacist permissions
+        pharmacist.save()
+        
+        return pharmacy
 
 
 
@@ -78,6 +88,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                 'is_pharmacist': user.is_pharmacist,
                 'is_manager': user.is_manager,
                 'is_customer': user.is_customer,
+                'pharmacy_name': user.pharmacy.name if user.pharmacy else None,
+                'pharmacy_id': str(user.pharmacy.id) if user.pharmacy else None,
             })
         except Exception as e:
             logger.error(f"Error in MyTokenObtainPairSerializer.validate: {e}")

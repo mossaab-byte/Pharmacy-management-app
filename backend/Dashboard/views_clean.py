@@ -120,10 +120,10 @@ class TopProductsView(APIView):
             top_products = (
                 SaleItem.objects
                 .filter(sale__pharmacy=pharmacy)
-                .values('medicine__name')
+                .values('pharmacy_medicine__medicine__nom')
                 .annotate(
                     total_sales=Sum('quantity'),
-                    total_revenue=Sum(F('quantity') * F('price'))
+                    total_revenue=Sum(F('quantity') * F('unit_price'))
                 )
                 .order_by('-total_revenue')[:5]
             )

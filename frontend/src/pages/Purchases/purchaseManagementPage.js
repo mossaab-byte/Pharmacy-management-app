@@ -57,6 +57,20 @@ const PurchaseManagementPage = () => {
     }
   };
 
+  const handleEdit = (id) => {
+    console.log('🔍 Direct edit button clicked with ID:', id);
+    console.log('🔍 ID type:', typeof id);
+    console.log('🔍 Navigating to:', `/purchases/${id}/edit`);
+    navigate(`/purchases/${id}/edit`);
+  };
+
+  const handleView = (id) => {
+    console.log('🔍 View button clicked with ID:', id);
+    console.log('🔍 ID type:', typeof id);
+    console.log('🔍 Navigating to:', `/purchases/${id}`);
+    navigate(`/purchases/${id}`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -93,6 +107,8 @@ const PurchaseManagementPage = () => {
         <div className="bg-white rounded-lg shadow">
           <PurchaseTable 
             purchases={purchases} 
+            onView={handleView}
+            onEdit={handleEdit}
             onDelete={handleDelete}
             deletingId={deletingId}
           />

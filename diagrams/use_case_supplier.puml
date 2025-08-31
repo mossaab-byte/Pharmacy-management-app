@@ -1,0 +1,54 @@
+@startuml Supplier Management Use Cases
+
+title Supplier & Purchase Management
+
+left to right direction
+
+actor "Pharmacist" as pharmacist
+actor "Manager" as manager
+
+' Generalization relationship - Pharmacist inherits all Manager capabilities
+pharmacist --|> manager
+
+package "Supplier Management" {
+  usecase "Add Supplier" as UC1
+  usecase "Update Supplier" as UC2
+  usecase "View Suppliers" as UC3
+  usecase "Manage Supplier Balance" as UC4
+  usecase "View Supplier History" as UC5
+}
+
+package "Purchase Management" {
+  usecase "Create Purchase Order" as UC6
+  usecase "Receive Purchase" as UC7
+  usecase "Update Purchase Status" as UC8
+  usecase "Process Payment to Supplier" as UC9
+  usecase "View Purchase History" as UC10
+}
+
+package "Reporting" {
+  usecase "Generate Purchase Report" as UC11
+  usecase "View Supplier Balance Report" as UC12
+}
+
+' Manager relationships (base permissions)
+manager --> UC1
+manager --> UC2
+manager --> UC3
+manager --> UC4
+manager --> UC5
+manager --> UC6
+manager --> UC7
+manager --> UC8
+manager --> UC9
+manager --> UC10
+manager --> UC11
+manager --> UC12
+
+' Include relationships
+UC6 ..> UC4 : <<include>>
+UC9 ..> UC4 : <<include>>
+UC11 ..> UC10 : <<include>>
+UC12 ..> UC4 : <<include>>
+
+@enduml

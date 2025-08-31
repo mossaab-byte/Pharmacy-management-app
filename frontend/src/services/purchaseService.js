@@ -16,11 +16,14 @@ const purchaseService = {
 
   create: async (payload) => {
     try {
+      console.log('🔍 Sending purchase payload:', JSON.stringify(payload, null, 2));
       const response = await apiClient.post('/purchases/purchases/', payload);
       console.log('Purchase created successfully:', response.data?.id);
       return response.data;
     } catch (error) {
       console.error('Error creating purchase:', error);
+      console.error('🔍 Error response data:', error.response?.data);
+      console.error('🔍 Error details:', error.response?.data?.details);
       throw new Error(`Failed to create purchase: ${error.response?.data?.detail || error.message}`);
     }
   },
@@ -96,7 +99,15 @@ const purchaseService = {
 
   getAll: async (params = {}) => {
     try {
-      const response = await apiClient.get('/purchases/purchases/', { params });
+      // Add cache busting parameter
+      const queryParams = {
+        ...params,
+        _t: Date.now() // Cache buster
+      };
+      
+      const response = await apiClient.get('/purchases/purchases/', { params: queryParams });
+      console.log('🔍 Raw purchase API response:', response.data);
+      
       // Always return the paginated response structure
       if (response.data && typeof response.data === 'object' && 'results' in response.data) {
         return response.data;

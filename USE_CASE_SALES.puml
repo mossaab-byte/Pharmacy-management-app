@@ -1,0 +1,80 @@
+@startuml Sales Management - Simplified Use Cases
+
+!define PRIMARY_COLOR #E74C3C
+!define SECONDARY_COLOR #3498DB
+!define SUCCESS_COLOR #27AE60
+!define WARNING_COLOR #F39C12
+
+title <color:#E74C3C><size:16><b>💰 GESTION DES VENTES</b></size></color>\n<size:12><i>Diagramme Simplifié - Processus Principal</i></size>
+
+left to right direction
+
+actor "<color:#2E86AB><b>💊 Pharmacien</b></color>" as Pharmacist #E3F2FD
+actor "<color:#A23B72><b>👨‍💼 Manager</b></color>" as Manager #FCE4EC
+actor "<color:#F18F01><b>👩‍💼 Employé</b></color>" as Employee #FFF8E1
+actor "<color:#C73E1D><b>🛍️ Client</b></color>" as Customer #FFEBEE
+
+rectangle "<color:#E74C3C><b>MODULE GESTION VENTES</b></color>" as SalesModule #FDEDEC {
+
+  package "<color:#3498DB><b>🛒 Processus de Vente</b></color>" as SalesProcess #EBF3FD {
+    usecase "<b>Créer Vente</b>" as UC_CreateSale #7FB3D3
+    usecase "<b>Rechercher Produit</b>" as UC_SearchProduct #7FB3D3
+    usecase "<b>Gérer Panier</b>" as UC_ManageCart #7FB3D3
+    usecase "<b>Calculer Total</b>" as UC_CalculateTotal #7FB3D3
+  }
+
+  package "<color:#F39C12><b>💳 Gestion Paiement</b></color>" as PaymentProcess #FEF9E7 {
+    usecase "<b>Paiement Espèces</b>" as UC_CashPayment #F8C471
+    usecase "<b>Paiement Carte</b>" as UC_CardPayment #F8C471
+    usecase "<b>Paiement Crédit</b>" as UC_CreditPayment #F8C471
+    usecase "<b>Imprimer Reçu</b>" as UC_PrintReceipt #F8C471
+  }
+
+  package "<color:#27AE60><b>📋 Suivi & Historique</b></color>" as HistoryProcess #E8F8F5 {
+    usecase "<b>Consulter Ventes</b>" as UC_ViewSales #82E0AA
+    usecase "<b>Modifier Vente</b>" as UC_ModifySale #82E0AA
+    usecase "<b>Annuler Vente</b>" as UC_CancelSale #82E0AA
+  }
+
+  package "<color:#9B59B6><b>👥 Gestion Client</b></color>" as CustomerProcess #F4ECF7 {
+    usecase "<b>Identifier Client</b>" as UC_IdentifyCustomer #C39BD3
+    usecase "<b>Créer Client</b>" as UC_CreateCustomer #C39BD3
+    usecase "<b>Appliquer Remise</b>" as UC_ApplyDiscount #C39BD3
+  }
+}
+
+' Relations simplifiées par niveau d'accès
+Pharmacist -[#2E86AB,thickness=2]-> SalesProcess : "<b>Gestion Complète</b>"
+Pharmacist -[#2E86AB,thickness=2]-> PaymentProcess : "<b>Tous Paiements</b>"
+Pharmacist -[#2E86AB,thickness=2]-> HistoryProcess : "<b>Administration</b>"
+Pharmacist -[#2E86AB,thickness=2]-> CustomerProcess : "<b>Supervision</b>"
+
+Manager -[#A23B72,thickness=2]-> SalesProcess : "<b>Supervision</b>"
+Manager -[#A23B72,thickness=1]-> PaymentProcess : "<b>Validation</b>"
+Manager -[#A23B72,thickness=1]-> HistoryProcess : "<b>Consultation</b>"
+Manager -[#A23B72,thickness=1]-> CustomerProcess : "<b>Gestion</b>"
+
+Employee -[#F18F01,thickness=1]-> SalesProcess : "<b>Ventes Courantes</b>"
+Employee -[#F18F01,thickness=1]-> PaymentProcess : "<b>Encaissement</b>"
+Employee -[#F18F01,thickness=1]-> UC_ViewSales : "<b>Historique</b>"
+Employee -[#F18F01,thickness=1]-> CustomerProcess : "<b>Service</b>"
+
+Customer -[#C73E1D,dashed]-> UC_ViewSales : "<b>Ses Achats</b>"
+
+' Relations fonctionnelles simplifiées
+UC_CreateSale ..> UC_SearchProduct : <<include>>
+UC_CreateSale ..> UC_CalculateTotal : <<include>>
+UC_CalculateTotal ..> UC_CashPayment : <<extend>>
+UC_CalculateTotal ..> UC_CardPayment : <<extend>>
+UC_CalculateTotal ..> UC_CreditPayment : <<extend>>
+UC_CashPayment ..> UC_PrintReceipt : <<include>>
+
+' Légende claire
+legend bottom right
+|<color:#2E86AB>━━</color>| **Pharmacien** | Contrôle total des ventes |
+|<color:#A23B72>━━</color>| **Manager** | Supervision et validation |
+|<color:#F18F01>━</color>| **Employé** | Ventes quotidiennes |
+|<color:#C73E1D>┅┅</color>| **Client** | Consultation personnelle |
+endlegend
+
+@enduml

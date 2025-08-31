@@ -50,18 +50,46 @@ class MedicineViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def quick_search(self, request):
-        """Quick search for medicines by name or code (for autocomplete)"""
+        """Ultra-fast optimized search for medicines by name or code (for autocomplete)"""
         query = request.query_params.get('q', '').strip()
-        limit = int(request.query_params.get('limit', 10))
+        limit = int(request.query_params.get('limit', 20))
         
         if not query:
             return Response([])
         
-        medicines = Medicine.objects.filter(
-            Q(nom__icontains=query) | 
-            Q(code__icontains=query) |
-            Q(dci1__icontains=query)
-        )[:limit]
+        # Ultra-optimized query for real-time search performance
+        # Only select essential fields for autocomplete
+        medicines_queryset = Medicine.objects.only(
+            'id', 'nom', 'code', 'dci1', 'forme', 'prix_br', 'ppv', 'ph', 'princeps_generique'
+        )
+        
+        query_lower = query.lower()
+        
+        if len(query) <= 2:
+            # For very short queries, only exact code matches and exact starts
+            medicines = medicines_queryset.filter(
+                Q(code__iexact=query) |  # Exact code match (barcode)
+                Q(nom__istartswith=query)  # Name starts with (case sensitive for speed)
+            )[:limit]
+        elif len(query) <= 3:
+            # For short queries, prioritize exact matches and startswith
+            medicines = medicines_queryset.filter(
+                Q(code__iexact=query) |  # Exact code match (highest priority)
+                Q(nom__istartswith=query) |  # Name starts with query
+                Q(dci1__istartswith=query) |   # DCI starts with query
+                Q(code__icontains=query)  # Code contains query
+            )[:limit]
+        else:
+            # For longer queries, use broader but still optimized search
+            medicines = medicines_queryset.filter(
+                Q(code__iexact=query) |  # Still prioritize exact code match
+                Q(nom__icontains=query) | 
+                Q(code__icontains=query) |
+                Q(dci1__icontains=query)
+            )[:limit]
+        
+        serializer = self.get_serializer(medicines, many=True)
+        return Response(serializer.data)
         
         serializer = self.get_serializer(medicines, many=True)
         return Response(serializer.data)

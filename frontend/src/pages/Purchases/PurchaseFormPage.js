@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { Card, Input, Button, LoadingSpinner, ErrorMessage, Modal } from '../../components/UI';
 import { useNotification } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContextNew';
 import MedicineSearchWithBarcode from '../../components/common/MedicineSearchWithBarcode';
 import supplierService from '../../services/supplierService';
 import purchaseService from '../../services/purchaseService';
@@ -13,6 +14,7 @@ const PurchaseFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { addNotification } = useNotification();
+  const { user } = useAuth();
   const isEdit = Boolean(id);
 
   // Form state
@@ -33,9 +35,7 @@ const PurchaseFormPage = () => {
   const [newItem, setNewItem] = useState({
     medicine: null,
     quantity: '',
-    unit_cost: '',
-    expiry_date: '',
-    batch_number: ''
+    unit_cost: ''
   });
 
   // Load initial data
@@ -69,8 +69,17 @@ const PurchaseFormPage = () => {
 
   const loadPurchaseData = async (purchaseId) => {
     try {
+      console.log('🔍 Loading purchase data for edit:', purchaseId);
       const purchase = await purchaseService.getById(purchaseId);
+      console.log('🔍 Purchase data loaded for edit:', purchase);
+      
       setFormData({
+        supplier: purchase.supplier?.id || '',
+        items: purchase.items || [],
+        notes: purchase.notes || ''
+      });
+      
+      console.log('🔍 Form data set for edit:', {
         supplier: purchase.supplier?.id || '',
         items: purchase.items || [],
         notes: purchase.notes || ''
@@ -81,6 +90,8 @@ const PurchaseFormPage = () => {
         type: 'error',
         message: 'Failed to load purchase data'
       });
+      // If loading fails, redirect back to purchases list
+      navigate('/purchases');
     }
   };
 
@@ -102,9 +113,7 @@ const PurchaseFormPage = () => {
       medicine: newItem.medicine,
       quantity: parseInt(newItem.quantity),
       unit_cost: parseFloat(newItem.unit_cost),
-      subtotal: parseInt(newItem.quantity) * parseFloat(newItem.unit_cost),
-      expiry_date: newItem.expiry_date || null,
-      batch_number: newItem.batch_number || ''
+      subtotal: parseInt(newItem.quantity) * parseFloat(newItem.unit_cost)
     };
 
     setFormData(prev => ({
@@ -116,9 +125,7 @@ const PurchaseFormPage = () => {
     setNewItem({
       medicine: null,
       quantity: '',
-      unit_cost: '',
-      expiry_date: '',
-      batch_number: ''
+      unit_cost: ''
     });
     setShowAddItemModal(false);
 
@@ -136,7 +143,11 @@ const PurchaseFormPage = () => {
   };
 
   const handleMedicineSelect = (medicine) => {
-    setNewItem(prev => ({ ...prev, medicine }));
+    setNewItem(prev => ({ 
+      ...prev, 
+      medicine,
+      unit_cost: medicine.ph || medicine.unit_cost || '' // Auto-fill with cost price (ph)
+    }));
   };
 
   const calculateTotal = () => {
@@ -165,16 +176,20 @@ const PurchaseFormPage = () => {
     setSubmitting(true);
     try {
       const payload = {
-        supplier: formData.supplier,
+        supplier_id: formData.supplier,
         items: formData.items.map(item => ({
-          medicine: item.medicine.id,
-          quantity: item.quantity,
-          unit_cost: item.unit_cost,
-          expiry_date: item.expiry_date || null,
-          batch_number: item.batch_number || ''
-        })),
-        notes: formData.notes
+          medicine_id: item.medicine.id,
+          quantity: parseInt(item.quantity),
+          unit_cost: parseFloat(item.unit_cost)
+        }))
       };
+
+      console.log('🔍 Purchase payload:', payload);
+      console.log('🔍 User data:', user);
+      console.log('🔍 User pharmacy:', user?.pharmacy);
+      console.log('🔍 User owned_pharmacy:', user?.owned_pharmacy);
+      console.log('🔍 FormData supplier:', formData.supplier);
+      console.log('🔍 FormData items:', formData.items);
 
       if (isEdit) {
         await purchaseService.update(id, payload);
@@ -184,6 +199,17 @@ const PurchaseFormPage = () => {
         });
       } else {
         await purchaseService.create(payload);
+        
+        // Refresh supplier data to show updated balance
+        try {
+          const suppliersResponse = await supplierService.getAll();
+          const suppliersList = suppliersResponse.results || [];
+          setSuppliers(suppliersList);
+          console.log('🔍 Supplier data refreshed after purchase creation');
+        } catch (refreshError) {
+          console.error('Error refreshing supplier data:', refreshError);
+        }
+        
         addNotification({
           type: 'success',
           message: 'Purchase created successfully'
@@ -306,11 +332,12 @@ const PurchaseFormPage = () => {
                   <div className="p-2 bg-gray-50 rounded-md">
                     {(() => {
                       const supplier = suppliers.find(s => s.id === formData.supplier);
+                      console.log('🔍 Selected supplier for balance display:', supplier);
                       return supplier ? (
                         <div className="text-sm text-gray-600">
                           <p><strong>Contact:</strong> {supplier.contact_email}</p>
                           <p><strong>Credit Limit:</strong> {supplier.credit_limit || 0} DH</p>
-                          <p><strong>Current Balance:</strong> {supplier.current_balance || 0} DH</p>
+                          <p><strong>Current Balance:</strong> <span style={{color: supplier.current_balance > 0 ? 'red' : 'green', fontWeight: 'bold'}}>{supplier.current_balance || 0} DH</span></p>
                         </div>
                       ) : null;
                     })()}
@@ -354,8 +381,6 @@ const PurchaseFormPage = () => {
                         <th className="border p-2 text-center">Quantity</th>
                         <th className="border p-2 text-center">Unit Cost</th>
                         <th className="border p-2 text-center">Subtotal</th>
-                        <th className="border p-2 text-center">Expiry</th>
-                        <th className="border p-2 text-center">Batch</th>
                         <th className="border p-2 text-center">Actions</th>
                       </tr>
                     </thead>
@@ -376,12 +401,6 @@ const PurchaseFormPage = () => {
                           <td className="border p-2 text-center">{item.unit_cost.toFixed(2)} DH</td>
                           <td className="border p-2 text-center font-medium">
                             {item.subtotal.toFixed(2)} DH
-                          </td>
-                          <td className="border p-2 text-center">
-                            {item.expiry_date || 'N/A'}
-                          </td>
-                          <td className="border p-2 text-center">
-                            {item.batch_number || 'N/A'}
                           </td>
                           <td className="border p-2 text-center">
                             <Button
@@ -501,23 +520,6 @@ const PurchaseFormPage = () => {
                 placeholder="0.00"
                 min="0"
                 required
-              />
-            </div>
-
-            {/* Optional Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Expiry Date"
-                type="date"
-                value={newItem.expiry_date}
-                onChange={(e) => setNewItem(prev => ({ ...prev, expiry_date: e.target.value }))}
-              />
-              <Input
-                label="Batch Number"
-                type="text"
-                value={newItem.batch_number}
-                onChange={(e) => setNewItem(prev => ({ ...prev, batch_number: e.target.value }))}
-                placeholder="Enter batch number"
               />
             </div>
 

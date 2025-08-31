@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { LoadingSpinner } from '../../components/UI';
+import { LoadingSpinner, DataRefreshButton, EmergencyFixButton } from '../../components/UI';
 import { Button } from '../../components/UI';
 import { 
   ShoppingCart, 
@@ -24,6 +24,10 @@ const DashboardStable = () => {
   // Extract KPIs from the dashboardData structure
   const kpis = dashboardData?.kpis || {};
   
+  console.log('🔍 DASHBOARD RENDER: dashboardData:', dashboardData);
+  console.log('🔍 DASHBOARD RENDER: kpis:', kpis);
+  console.log('🔍 DASHBOARD RENDER: totalPurchases from kpis:', kpis.totalPurchases);
+  
   // Fallbacks for stats if not loaded yet - adapted for SimpleDashboardContext structure
   const stats = {
     totalSales: kpis?.totalSales || 0,
@@ -36,9 +40,18 @@ const DashboardStable = () => {
     lowStockItems: Array.isArray(dashboardData?.inventory) ? dashboardData.inventory.filter(item => item.stock_quantity < 10) : []
   };
 
+  console.log('🔍 DASHBOARD RENDER: stats object:', stats);
+  console.log('🔍 DASHBOARD RENDER: stats.totalPurchases:', stats.totalPurchases);
+
   const formatCurrency = (amount) => {
-    if (typeof amount !== 'number' || isNaN(amount)) return '0.00 DH';
-    return `${amount.toFixed(2)} DH`;
+    console.log('🔍 DASHBOARD formatCurrency called with:', amount, typeof amount);
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      console.log('🔍 DASHBOARD formatCurrency returning 0.00 DH for invalid amount');
+      return '0.00 DH';
+    }
+    const result = `${amount.toFixed(2)} DH`;
+    console.log('🔍 DASHBOARD formatCurrency returning:', result);
+    return result;
   };
 
   const formatDate = (dateString) => {
@@ -69,14 +82,14 @@ const DashboardStable = () => {
 
   const QuickActionsCard = () => (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions Rapides</h3>
       <div className="grid grid-cols-2 gap-4">
         <Button 
           onClick={() => navigate('/sales/new')}
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          New Sale
+          Nouvelle Vente
         </Button>
         <Button 
           onClick={() => navigate('/purchases/new')}
@@ -84,7 +97,7 @@ const DashboardStable = () => {
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          New Purchase
+          Nouvel Achat
         </Button>
         <Button 
           onClick={() => navigate('/medicines/new')}
@@ -92,7 +105,7 @@ const DashboardStable = () => {
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Add Medicine
+          Ajouter Médicament
         </Button>
         <Button 
           onClick={() => navigate('/customers/new')}
@@ -100,7 +113,7 @@ const DashboardStable = () => {
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Add Customer
+          Ajouter Client
         </Button>
       </div>
     </div>
@@ -117,7 +130,7 @@ const DashboardStable = () => {
           className="flex items-center gap-2"
         >
           <Eye className="w-4 h-4" />
-          View All
+          Voir Tout
         </Button>
       </div>
       <div className="space-y-3">
@@ -128,14 +141,14 @@ const DashboardStable = () => {
             <div key={item?.id || Math.random()} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
               <div className="flex-1">
                 <div className="text-sm font-medium text-gray-900">
-                  {item?.customer_name || item?.supplier_name || 'Unknown'}
+                  {item?.customer_name || item?.supplier_name || 'Inconnu'}
                 </div>
                 <div className="text-xs text-gray-500">
                   {formatDate(item?.date)}
                 </div>
               </div>
               <div className="text-sm font-medium text-gray-900">
-                {formatCurrency(item?.total || 0)}
+                {formatCurrency(item?.total || item?.total_amount || 0)}
               </div>
             </div>
           ))
@@ -147,7 +160,7 @@ const DashboardStable = () => {
   const LowStockCard = () => (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Low Stock Items</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Stock Faible</h3>
         <Button
           variant="outline"
           size="sm"
@@ -155,18 +168,18 @@ const DashboardStable = () => {
           className="flex items-center gap-2"
         >
           <Eye className="w-4 h-4" />
-          View All
+          Voir Tout
         </Button>
       </div>
       <div className="space-y-3">
         {stats.lowStockItems.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">No low stock items</p>
+          <p className="text-gray-500 text-center py-4">Aucun article en stock faible</p>
         ) : (
           stats.lowStockItems.slice(0, 5).map((item) => (
             <div key={item?.id || Math.random()} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
               <div className="flex-1">
                 <div className="text-sm font-medium text-gray-900">
-                  {item?.nom || item?.name || 'Unknown Medicine'}
+                  {item?.nom || item?.name || 'Médicament Inconnu'}
                 </div>
                 <div className="text-xs text-gray-500">
                   {item?.forme || 'N/A'}
@@ -194,15 +207,18 @@ const DashboardStable = () => {
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600">Welcome back! Here's what's happening with your pharmacy.</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={refreshData}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <EmergencyFixButton />
+            <Button
+              variant="outline"
+              onClick={refreshData}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -217,7 +233,7 @@ const DashboardStable = () => {
                 onClick={() => setError(null)}
                 className="ml-auto"
               >
-                Dismiss
+                Ignorer
               </Button>
             </div>
           </div>
@@ -233,7 +249,7 @@ const DashboardStable = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
-                title="Total Sales (Monthly)"
+                title="Total Ventes (Mensuel)"
                 value={formatCurrency(
                   Array.isArray(stats.salesMonthly) && stats.salesMonthly.length > 0
                     ? stats.salesMonthly.reduce((sum, m) => sum + (typeof m.total === 'number' ? m.total : 0), 0)
@@ -244,25 +260,21 @@ const DashboardStable = () => {
                 onClick={() => navigate('/sales')}
               />
               <StatCard
-                title="Total Purchases (Monthly)"
-                value={formatCurrency(
-                  Array.isArray(stats.purchasesMonthly) && stats.purchasesMonthly.length > 0
-                    ? stats.purchasesMonthly.reduce((sum, m) => sum + (typeof m.total === 'number' ? m.total : 0), 0)
-                    : 0
-                )}
+                title="Total Achats (Mensuel)"
+                value={formatCurrency(stats.totalPurchases || 0)}
                 icon={ShoppingCart}
                 color="bg-blue-500"
                 onClick={() => navigate('/purchases')}
               />
               <StatCard
-                title="Total Customers"
+                title="Total Clients"
                 value={Number.isFinite(stats.totalCustomers) ? stats.totalCustomers.toLocaleString() : '0'}
                 icon={Users}
                 color="bg-purple-500"
                 onClick={() => navigate('/customers')}
               />
               <StatCard
-                title="Total Medicines"
+                title="Total Médicaments"
                 value={Number.isFinite(stats.totalMedicines) ? stats.totalMedicines.toLocaleString() : '0'}
                 icon={Package}
                 color="bg-orange-500"
@@ -276,15 +288,15 @@ const DashboardStable = () => {
             {/* Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <RecentActivityCard
-                title="Recent Sales"
+                title="Ventes Récentes"
                 items={stats.recentSales}
-                emptyMessage="No recent sales"
+                emptyMessage="Aucune vente récente"
                 onViewAll={() => navigate('/sales')}
               />
               <RecentActivityCard
-                title="Recent Purchases"
+                title="Achats Récents"
                 items={stats.recentPurchases}
-                emptyMessage="No recent purchases"
+                emptyMessage="Aucun achat récent"
                 onViewAll={() => navigate('/purchases')}
               />
             </div>

@@ -19,11 +19,9 @@ urlpatterns = [
     path('login/', views.MyTokenObtainPairView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
 
-    # Nouvelles routes pour la gestion des utilisateurs
+    # Current user endpoint (function-based view)
     path('current-user/', views.current_user, name='current-user'),
-    path('users/', views.list_users, name='list-users'),
-    path('users/<int:user_id>/toggle-manager/', views.toggle_manager_status, name='toggle-manager'),
-    path('users/<int:user_id>/permissions/', views.update_user_permissions, name='update-permissions'),
 
+    # Include router URLs for UserManagementViewSet
     path('', include(router.urls)),
 ]

@@ -1,0 +1,38 @@
+@startuml Medicine Search Sequence
+
+title Medicine Search Process
+
+actor "User" as User
+participant "Frontend" as Frontend
+participant "Medicine API" as MedicineAPI
+participant "Database" as DB
+
+alt Text Search
+  User -> Frontend: Enter search query
+  Frontend -> MedicineAPI: GET /api/medicines/search\n?q={query}
+else Barcode Scan
+  User -> Frontend: Scan medicine barcode
+  Frontend -> MedicineAPI: GET /api/medicines/search\n?barcode={code}
+end
+
+activate MedicineAPI
+alt Text Search
+  MedicineAPI -> DB: Search medicines\nby name, category
+else Barcode Search
+  MedicineAPI -> DB: Search medicine\nby barcode
+end
+DB -> MedicineAPI: Matching medicines
+
+alt Medicines found
+  MedicineAPI -> DB: Get stock levels
+  DB -> MedicineAPI: Stock data
+  MedicineAPI -> Frontend: Medicine list\n+ stock info
+  Frontend -> User: Display search results
+else No medicines found
+  MedicineAPI -> Frontend: Empty result set
+  Frontend -> User: "No medicines found"
+end
+
+deactivate MedicineAPI
+
+@enduml

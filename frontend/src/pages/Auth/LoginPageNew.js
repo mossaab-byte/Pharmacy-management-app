@@ -18,7 +18,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('Logging in...');
+    setMessage('Connexion en cours...');
     
     try {
       const response = await fetch('http://localhost:8000/api/token/', {
@@ -43,19 +43,20 @@ const LoginPage = () => {
         localStorage.setItem('refresh_token', result.refresh);
         localStorage.setItem('token', result.access);
         
-        // Make sure user data is properly structured before storing
-        if (result.user && typeof result.user === 'object') {
-          localStorage.setItem('user', JSON.stringify(result.user));
-        } else {
-          // If no user object is provided, create a minimal one
-          localStorage.setItem('user', JSON.stringify({ 
-            username: form.username,
-            id: result.user_id || 1,
-            pharmacy: null
-          }));
-        }
+        // Create user object with pharmacy information from login response
+        const userObj = {
+          id: result.user_id,
+          username: result.username,
+          is_pharmacist: result.is_pharmacist,
+          is_manager: result.is_manager,
+          is_customer: result.is_customer,
+          pharmacy_name: result.pharmacy_name,
+          pharmacy_id: result.pharmacy_id
+        };
         
-        setMessage('Login successful! Redirecting...');
+        localStorage.setItem('user', JSON.stringify(userObj));
+        
+        setMessage('Connexion réussie! Redirection...');
         
         // Redirect to dashboard
         setTimeout(() => {
@@ -65,12 +66,12 @@ const LoginPage = () => {
         const errorMessage = result.detail || 
                             result.message || 
                             result.error ||
-                            'Invalid credentials. Please check your username and password.';
-        setMessage('Login failed: ' + errorMessage);
+                            'Identifiants invalides. Veuillez vérifier votre nom d\'utilisateur et mot de passe.';
+        setMessage('Échec de connexion: ' + errorMessage);
       }
     } catch (error) {
       console.error('Login error:', error);
-      setMessage('Login failed: Network error or server not responding. Please try again later.');
+      setMessage('Échec de connexion: Erreur réseau ou serveur ne répond pas. Veuillez réessayer plus tard.');
     } finally {
       setLoading(false);
     }
@@ -82,10 +83,10 @@ const LoginPage = () => {
         <div className="max-w-md w-full space-y-8">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Mophar
+              Système de Gestion de Pharmacie
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
-              Sign in to your account
+              Connectez-vous à votre compte
             </p>
           </div>
           
@@ -101,7 +102,7 @@ const LoginPage = () => {
                   type="text"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Username"
+                  placeholder="Nom d'utilisateur"
                   value={form.username}
                   onChange={handleChange}
                 />
@@ -116,7 +117,7 @@ const LoginPage = () => {
                   type="password"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
+                  placeholder="Mot de passe"
                   value={form.password}
                   onChange={handleChange}
                 />
@@ -129,7 +130,7 @@ const LoginPage = () => {
                 disabled={loading}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? 'Connexion...' : 'Se connecter'}
               </button>
             </div>
 
@@ -145,13 +146,13 @@ const LoginPage = () => {
 
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
+                Vous n'avez pas de compte?{' '}
                 <button
                   type="button"
                   onClick={() => navigate('/register-user')}
                   className="font-medium text-indigo-600 hover:text-indigo-500"
                 >
-                  Register here
+                  Inscrivez-vous ici
                 </button>
               </p>
             </div>

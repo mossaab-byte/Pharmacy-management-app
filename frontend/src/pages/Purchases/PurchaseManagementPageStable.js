@@ -38,12 +38,31 @@ const PurchaseManagementPageStable = () => {
       
       const response = await purchaseService.getAll(queryParams);
       
+      console.log('🔍 Purchase API Response:', response);
+      
       if (response && response.results) {
+        console.log('🔍 Purchase Results:', response.results);
+        // Debug the first purchase
+        if (response.results.length > 0) {
+          const firstPurchase = response.results[0];
+          console.log('🔍 First Purchase Debug:', {
+            id: firstPurchase.id,
+            total: firstPurchase.total,
+            total_amount: firstPurchase.total_amount,
+            supplier_name: firstPurchase.supplier_name,
+            items_count: firstPurchase.items_count,
+            status: firstPurchase.status,
+            date: firstPurchase.date,
+            created_at: firstPurchase.created_at
+          });
+        }
+        
         setPurchases(response.results);
         setTotal(response.total || 0);
         setPage(response.page || 1);
         setPageSize(response.page_size || 25);
       } else {
+        console.log('🔍 No results in response');
         setPurchases([]);
         setTotal(0);
       }
@@ -114,7 +133,9 @@ const PurchaseManagementPageStable = () => {
 
   const handleEdit = (id) => {
     if (id) {
-      navigate(`/purchases/edit/${id}`);
+      console.log('🔍 Direct edit button clicked with ID:', id);
+      console.log('🔍 Navigating to:', `/purchases/${id}/edit`);
+      navigate(`/purchases/${id}/edit`);
     }
   };
 
@@ -122,8 +143,25 @@ const PurchaseManagementPageStable = () => {
   const displayedPurchases = purchases;
 
   const formatCurrency = (amount) => {
-    if (typeof amount !== 'number' || isNaN(amount)) return '0.00 DH';
-    return `${amount.toFixed(2)} DH`;
+    console.log('🔍 FormatCurrency input:', { amount, type: typeof amount });
+    
+    // Handle string numbers from API
+    if (typeof amount === 'string') {
+      const numericAmount = parseFloat(amount);
+      if (!isNaN(numericAmount)) {
+        console.log('🔍 FormatCurrency converted string:', numericAmount);
+        return `${numericAmount.toFixed(2)} DH`;
+      }
+    }
+    
+    // Handle numeric values
+    if (typeof amount === 'number' && !isNaN(amount)) {
+      console.log('🔍 FormatCurrency using number:', amount);
+      return `${amount.toFixed(2)} DH`;
+    }
+    
+    console.log('🔍 FormatCurrency fallback to 0.00');
+    return '0.00 DH';
   };
 
   const formatDate = (dateString) => {
@@ -311,10 +349,10 @@ const PurchaseManagementPageStable = () => {
                           {formatDate(purchase?.date)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {purchase?.supplier_name || purchase?.supplier || 'Unknown Supplier'}
+                          {purchase?.supplier_name || purchase?.supplier?.name || 'Unknown Supplier'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          {formatCurrency(purchase?.total || 0)}
+                          {formatCurrency(purchase?.total || purchase?.total_amount || 0)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${getStatusStyle(purchase?.status || 'pending')}`}>
@@ -367,7 +405,11 @@ const PurchaseManagementPageStable = () => {
             {/* Summary */}
             <div className="flex justify-between items-center text-sm text-gray-600">
               <div>
-                Total value: {formatCurrency(displayedPurchases.reduce((sum, p) => sum + (p?.total_amount || 0), 0))}
+                Total value: {formatCurrency(displayedPurchases.reduce((sum, p) => {
+                  const amount = p?.total || p?.total_amount || 0;
+                  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+                  return sum + (isNaN(numericAmount) ? 0 : numericAmount);
+                }, 0))}
               </div>
               <div>
                 Page {page} of {Math.ceil(total / pageSize)} • {total} total purchases

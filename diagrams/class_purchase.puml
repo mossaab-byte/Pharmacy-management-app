@@ -1,0 +1,65 @@
+@startuml Purchase Domain Classes
+
+title Purchase & Supplier Management Classes
+
+!define ENTITY_COLOR #E1F5FE
+!define VALUE_COLOR #FFF3E0
+
+class Purchase <<ENTITY_COLOR>> {
+  +UUID id
+  +UUID supplier_id
+  +UUID pharmacist_id
+  +Decimal total_amount
+  +String status
+  +Date order_date
+  +Date received_date
+  +DateTime created_at
+  --
+  +void calculate_total()
+  +void mark_received()
+  +void update_inventory()
+}
+
+class PurchaseItem <<VALUE_COLOR>> {
+  +UUID id
+  +UUID purchase_id
+  +UUID medicine_id
+  +Integer quantity
+  +Decimal unit_cost
+  +Decimal total_cost
+  --
+  +void calculate_item_total()
+}
+
+class SupplierTransaction <<ENTITY_COLOR>> {
+  +UUID id
+  +UUID supplier_id
+  +UUID purchase_id
+  +String transaction_type
+  +Decimal amount
+  +String description
+  +DateTime transaction_date
+  --
+  +void update_supplier_balance()
+}
+
+class Inventory <<ENTITY_COLOR>> {
+  +UUID id
+  +UUID medicine_id
+  +Integer current_stock
+  +Integer minimum_stock
+  +Integer maximum_stock
+  +DateTime last_updated
+  --
+  +Boolean needs_reorder()
+  +void update_stock(quantity)
+  +void generate_alert()
+}
+
+' Relationships
+Purchase ||--o{ PurchaseItem : contains
+Purchase ||--|| SupplierTransaction : creates
+PurchaseItem }|--|| Medicine : includes
+Inventory ||--|| Medicine : tracks
+
+@enduml

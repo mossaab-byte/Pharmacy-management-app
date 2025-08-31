@@ -1,0 +1,29 @@
+@startuml User Authentication Sequence
+
+title User Login Process
+
+actor "User" as User
+participant "Frontend" as Frontend
+participant "Auth API" as AuthAPI
+participant "Database" as DB
+
+User -> Frontend: Enter credentials
+Frontend -> AuthAPI: POST /api/login\n{username, password}
+
+activate AuthAPI
+AuthAPI -> DB: Validate credentials
+DB -> AuthAPI: User data
+
+alt Valid credentials
+  AuthAPI -> DB: Get user permissions
+  DB -> AuthAPI: Permission data
+  AuthAPI -> Frontend: Login successful\n+ JWT tokens + user data
+  Frontend -> User: Redirect to dashboard
+else Invalid credentials
+  AuthAPI -> Frontend: Error: Invalid credentials
+  Frontend -> User: Display error message
+end
+
+deactivate AuthAPI
+
+@enduml

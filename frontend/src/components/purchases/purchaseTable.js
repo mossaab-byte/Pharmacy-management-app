@@ -7,7 +7,7 @@ const statusStyles = {
   cancelled: 'text-red-700 bg-red-100 px-2 py-1 rounded',
 };
 
-const PurchaseTable = ({ purchases = [], onView, onDelete, deletingId }) => {
+const PurchaseTable = ({ purchases = [], onView, onEdit, onDelete, deletingId }) => {
   // Ensure purchases is always an array
   const safePurchases = Array.isArray(purchases) ? purchases : [];
 
@@ -58,6 +58,16 @@ const PurchaseTable = ({ purchases = [], onView, onDelete, deletingId }) => {
                   aria-label={`View purchase ${p.id}`}
                 >
                   View
+                </Button>
+              )}
+              {onEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onEdit(p.id)}
+                  aria-label={`Edit purchase ${p.id}`}
+                >
+                  Edit
                 </Button>
               )}
               {onDelete && (

@@ -1,4 +1,5 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
 from .models import Customer, Sale, Payment
 from .serializers import CustomerSerializer, SaleSerializer, SaleCreateSerializer
 from .permissions import *
@@ -23,7 +24,7 @@ class SalesViewSet(viewsets.ModelViewSet):
         return Sale.objects.none()
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action in ['create', 'update', 'partial_update']:
             return SaleCreateSerializer
         return SaleSerializer
 
@@ -56,6 +57,17 @@ class SalesViewSet(viewsets.ModelViewSet):
             print("❌ User has no pharmacy - cannot create sale")
             raise ValueError("User must be associated with a pharmacy to create sales")
 
+    def perform_update(self, serializer):
+        print(f"🔍 perform_update called for sale: {serializer.instance.id}")
+        print(f"🔍 User: {self.request.user}")
+        print(f"🔍 Old total: {serializer.instance.total_amount}")
+        
+        # Save the updated sale (the serializer's update method handles the complex logic)
+        serializer.save()
+        
+        print(f"🔍 Sale update completed: {serializer.instance.id}")
+        print(f"🔍 New total: {serializer.instance.total_amount}")
+
 class PharmacySalesListAPIView(generics.ListAPIView):
     serializer_class = SaleSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -83,26 +95,70 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
     permission_classes = [permissions.IsAuthenticated, IsPharmacistOrManager,CanManageCustomers]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['user__first_name', 'user__last_name', 'phone']    
+    search_fields = ['user__first_name', 'user__last_name', 'phone']
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']    
     
     def get_queryset(self):
         user = self.request.user
         
-        # Filter customers based on sales from this pharmacy only
+        # Show only customers who belong to this pharmacy through either:
+        # 1. Their user account is associated with this pharmacy, OR
+        # 2. They have made purchases at this pharmacy
         if hasattr(user, 'pharmacy') and user.pharmacy:
-            # Get customers who have made purchases at this pharmacy
-            customer_ids = Sale.objects.filter(
-                pharmacy=user.pharmacy
-            ).values_list('customer_id', flat=True).distinct()
+            from django.db.models import Q
             
             return Customer.objects.filter(
-                id__in=customer_ids
-            ).select_related('user')
+                Q(user__pharmacy=user.pharmacy) |  # Customer's user belongs to this pharmacy
+                Q(sale__pharmacy=user.pharmacy)    # Customer has purchased from this pharmacy
+            ).distinct().select_related('user')
         
         return Customer.objects.none()
 
     def perform_create(self, serializer):
         serializer.save()
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Custom delete method to handle customer deletion properly
+        """
+        try:
+            customer = self.get_object()
+            print(f"🗑️ Attempting to delete customer: {customer.user.first_name} {customer.user.last_name}")
+            
+            # Check if customer has sales
+            from .models import Sale
+            sales_count = Sale.objects.filter(customer=customer).count()
+            
+            if sales_count > 0:
+                print(f"⚠️ Customer has {sales_count} sales - cannot delete directly")
+                # Instead of deleting, mark as inactive
+                customer.is_active = False
+                customer.save()
+                print(f"✅ Customer marked as inactive instead of deleted")
+                
+                return Response({
+                    'message': f'Customer has {sales_count} sales and cannot be deleted. Customer has been marked as inactive instead.'
+                }, status=status.HTTP_200_OK)
+            else:
+                # Safe to delete - no sales associated
+                print(f"✅ Customer has no sales - safe to delete")
+                
+                # Delete the associated User as well
+                user = customer.user
+                customer.delete()
+                user.delete()
+                
+                print(f"✅ Customer and associated user deleted successfully")
+                
+                return Response({
+                    'message': 'Customer deleted successfully'
+                }, status=status.HTTP_204_NO_CONTENT)
+                
+        except Exception as e:
+            print(f"❌ Error deleting customer: {str(e)}")
+            return Response({
+                'error': f'Error deleting customer: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
 class CustomerDetailView(generics.RetrieveAPIView):
     serializer_class = CustomerSerializer
     permission_classes = [permissions.IsAuthenticated, IsPharmacistOrManager,CanManageCustomers]

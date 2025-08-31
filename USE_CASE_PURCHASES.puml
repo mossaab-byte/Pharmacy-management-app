@@ -1,0 +1,215 @@
+@startuml Purchase Management - Simplified Use Cases
+
+!define PRIMARY_COLOR #F39C12
+!define SECONDARY_COLOR #3498DB
+!define SUCCESS_COLOR #27AE60
+!define WARNING_COLOR #E74C3C
+
+title <color:#F39C12><size:16><b>🛒 GESTION DES ACHATS</b></size></color>\n<size:12><i>Diagramme Simplifié - Processus Principal</i></size>
+
+left to right direction
+
+actor "<color:#2E86AB><b>💊 Pharmacien</b></color>" as Pharmacist #E3F2FD
+actor "<color:#A23B72><b>👨‍💼 Manager</b></color>" as Manager #FCE4EC
+actor "<color:#F18F01><b>👩‍💼 Employé</b></color>" as Employee #FFF8E1
+actor "<color:#27AE60><b>🚚 Fournisseur</b></color>" as Supplier #E8F5E8
+
+rectangle "<color:#F39C12><b>MODULE GESTION ACHATS</b></color>" as PurchaseModule #FEF9E7 {
+
+  package "<color:#3498DB><b>👥 Gestion Fournisseurs</b></color>" as SupplierPackage #EBF3FD {
+    usecase "<b>Gérer Fournisseurs</b>" as UC_ManageSuppliers #7FB3D3
+    usecase "<b>Consulter Catalogue</b>" as UC_ViewCatalog #7FB3D3
+    usecase "<b>Évaluer Fournisseurs</b>" as UC_RateSuppliers #7FB3D3
+  }
+
+  package "<color:#27AE60><b>📋 Processus Commande</b></color>" as OrderPackage #E8F8F5 {
+    usecase "<b>Créer Commande</b>" as UC_CreateOrder #82E0AA
+    usecase "<b>Gérer Articles</b>" as UC_ManageItems #82E0AA
+    usecase "<b>Valider Commande</b>" as UC_ValidateOrder #82E0AA
+    usecase "<b>Suivre Commande</b>" as UC_TrackOrder #82E0AA
+  }
+
+  package "<color:#9B59B6><b>📦 Réception Marchandises</b></color>" as ReceiptPackage #F4ECF7 {
+    usecase "<b>Réceptionner Livraison</b>" as UC_ReceiveDelivery #C39BD3
+    usecase "<b>Contrôler Qualité</b>" as UC_QualityControl #C39BD3
+    usecase "<b>Mettre à Jour Stock</b>" as UC_UpdateStock #C39BD3
+  }
+
+  package "<color:#E74C3C><b>💰 Gestion Financière</b></color>" as FinancePackage #FDEDEC {
+    usecase "<b>Gérer Crédit</b>" as UC_ManageCredit #F1948A
+    usecase "<b>Traiter Paiements</b>" as UC_ProcessPayments #F1948A
+    usecase "<b>Consulter Balances</b>" as UC_ViewBalances #F1948A
+  }
+
+  package "<color:#17A2B8><b>📊 Suivi & Rapports</b></color>" as ReportsPackage #D6EAF8 {
+    usecase "<b>Rapport Achats</b>" as UC_PurchaseReport #5DADE2
+    usecase "<b>Analyser Fournisseurs</b>" as UC_SupplierAnalysis #5DADE2
+    usecase "<b>Historique Commandes</b>" as UC_OrderHistory #5DADE2
+  }
+}
+
+' Relations simplifiées par niveau d'accès
+Pharmacist -[#2E86AB,thickness=2]-> SupplierPackage : "<b>Administration</b>"
+Pharmacist -[#2E86AB,thickness=2]-> OrderPackage : "<b>Validation Finale</b>"
+Pharmacist -[#2E86AB,thickness=2]-> ReceiptPackage : "<b>Contrôle Qualité</b>"
+Pharmacist -[#2E86AB,thickness=2]-> FinancePackage : "<b>Gestion Financière</b>"
+Pharmacist -[#2E86AB,thickness=2]-> ReportsPackage : "<b>Analyses Stratégiques</b>"
+
+Manager -[#A23B72,thickness=2]-> SupplierPackage : "<b>Gestion</b>"
+Manager -[#A23B72,thickness=2]-> OrderPackage : "<b>Supervision</b>"
+Manager -[#A23B72,thickness=1]-> ReceiptPackage : "<b>Validation</b>"
+Manager -[#A23B72,thickness=1]-> FinancePackage : "<b>Suivi</b>"
+Manager -[#A23B72,thickness=1]-> ReportsPackage : "<b>Rapports</b>"
+
+Employee -[#F18F01,thickness=1]-> UC_ViewCatalog : "<b>Consultation</b>"
+Employee -[#F18F01,thickness=1]-> UC_CreateOrder : "<b>Commandes</b>"
+Employee -[#F18F01,thickness=1]-> ReceiptPackage : "<b>Réception</b>"
+Employee -[#F18F01,thickness=1]-> UC_OrderHistory : "<b>Historique</b>"
+
+Supplier -[#27AE60,dashed]-> UC_ViewCatalog : "<b>Catalogue</b>"
+Supplier -[#27AE60,dashed]-> UC_TrackOrder : "<b>Suivi</b>"
+Supplier -[#27AE60,dashed]-> UC_ViewBalances : "<b>Balance</b>"
+
+' Relations fonctionnelles simplifiées
+UC_CreateOrder ..> UC_ManageSuppliers : <<include>>
+UC_CreateOrder ..> UC_ManageItems : <<include>>
+UC_ValidateOrder ..> UC_TrackOrder : <<include>>
+UC_ReceiveDelivery ..> UC_UpdateStock : <<include>>
+UC_QualityControl ..> UC_ProcessPayments : <<extend>>
+
+' Légende claire
+legend bottom right
+|<color:#2E86AB>━━</color>| **Pharmacien** | Contrôle total des achats |
+|<color:#A23B72>━━</color>| **Manager** | Supervision et validation |
+|<color:#F18F01>━</color>| **Employé** | Opérations courantes |
+|<color:#27AE60>┅┅</color>| **Fournisseur** | Interface partenaire |
+endlegend
+
+@enduml
+  }
+
+  package "Analyse et Rapports" {
+    usecase "Rapport achats par période\n(Purchase Report by Period)" as UC_PurchaseReport
+    usecase "Analyse performance fournisseurs\n(Supplier Performance Analysis)" as UC_SupplierAnalysis
+    usecase "Rapport coûts d'acquisition\n(Acquisition Cost Report)" as UC_CostReport
+    usecase "Tendances prix\n(Price Trends)" as UC_PriceTrends
+    usecase "Prévisions achats\n(Purchase Forecasting)" as UC_PurchaseForecasting
+    usecase "Analyse rentabilité\n(Profitability Analysis)" as UC_ProfitAnalysis
+  }
+
+  package "Optimisation" {
+    usecase "Suggérer réapprovisionnement\n(Suggest Restock)" as UC_SuggestRestock
+    usecase "Optimiser quantités commande\n(Optimize Order Quantities)" as UC_OptimizeQty
+    usecase "Comparer prix fournisseurs\n(Compare Supplier Prices)" as UC_ComparePrices
+    usecase "Négocier conditions\n(Negotiate Terms)" as UC_NegotiateTerms
+    usecase "Planifier commandes groupées\n(Plan Bulk Orders)" as UC_PlanBulkOrders
+  }
+}
+
+' Pharmacist permissions (full access)
+Pharmacist --> UC_CreateSupplier
+Pharmacist --> UC_EditSupplier
+Pharmacist --> UC_ViewSuppliers
+Pharmacist --> UC_SearchSupplier
+Pharmacist --> UC_RateSupplier
+Pharmacist --> UC_DeactivateSupplier
+Pharmacist --> UC_PaymentTerms
+
+Pharmacist --> UC_CreatePO
+Pharmacist --> UC_SelectSupplier
+Pharmacist --> UC_AddOrderItems
+Pharmacist --> UC_CalcOrderTotal
+Pharmacist --> UC_ApplyOrderDiscount
+Pharmacist --> UC_ValidateOrder
+Pharmacist --> UC_SendOrder
+Pharmacist --> UC_TrackOrder
+
+Pharmacist --> UC_ReceiveDelivery
+Pharmacist --> UC_CheckCompliance
+Pharmacist --> UC_QualityControl
+Pharmacist --> UC_UpdateStock
+Pharmacist --> UC_GenerateReceipt
+Pharmacist --> UC_ReportIssue
+
+Pharmacist --> UC_ManageCredit
+Pharmacist --> UC_RecordPayment
+Pharmacist --> UC_ViewBalance
+Pharmacist --> UC_SchedulePayments
+Pharmacist --> UC_GenerateInvoices
+Pharmacist --> UC_BankReconciliation
+
+Pharmacist --> UC_PurchaseReport
+Pharmacist --> UC_SupplierAnalysis
+Pharmacist --> UC_CostReport
+Pharmacist --> UC_PriceTrends
+Pharmacist --> UC_PurchaseForecasting
+Pharmacist --> UC_ProfitAnalysis
+
+Pharmacist --> UC_SuggestRestock
+Pharmacist --> UC_OptimizeQty
+Pharmacist --> UC_ComparePrices
+Pharmacist --> UC_NegotiateTerms
+Pharmacist --> UC_PlanBulkOrders
+
+' Manager permissions (purchase management)
+Manager --> UC_CreateSupplier
+Manager --> UC_EditSupplier
+Manager --> UC_ViewSuppliers
+Manager --> UC_SearchSupplier
+Manager --> UC_RateSupplier
+
+Manager --> UC_CreatePO
+Manager --> UC_SelectSupplier
+Manager --> UC_AddOrderItems
+Manager --> UC_CalcOrderTotal
+Manager --> UC_ApplyOrderDiscount
+Manager --> UC_ValidateOrder
+Manager --> UC_SendOrder
+Manager --> UC_TrackOrder
+
+Manager --> UC_ReceiveDelivery
+Manager --> UC_CheckCompliance
+Manager --> UC_QualityControl
+Manager --> UC_UpdateStock
+Manager --> UC_GenerateReceipt
+Manager --> UC_ReportIssue
+
+Manager --> UC_ViewBalance
+Manager --> UC_RecordPayment
+
+Manager --> UC_PurchaseReport
+Manager --> UC_SupplierAnalysis
+Manager --> UC_CostReport
+
+Manager --> UC_SuggestRestock
+Manager --> UC_ComparePrices
+
+' Employee permissions (limited)
+Employee --> UC_ViewSuppliers
+Employee --> UC_SearchSupplier
+
+Employee --> UC_TrackOrder
+
+Employee --> UC_ReceiveDelivery
+Employee --> UC_CheckCompliance
+Employee --> UC_UpdateStock
+Employee --> UC_ReportIssue
+
+' Supplier interactions
+Supplier --> UC_ReceiveDelivery : "Delivers goods"
+Supplier --> UC_SendOrder : "Receives orders"
+
+' Use case relationships
+UC_CreatePO ..> UC_SelectSupplier : <<include>>
+UC_CreatePO ..> UC_AddOrderItems : <<include>>
+UC_AddOrderItems ..> UC_CalcOrderTotal : <<include>>
+UC_ValidateOrder ..> UC_SendOrder : <<include>>
+UC_ReceiveDelivery ..> UC_CheckCompliance : <<include>>
+UC_CheckCompliance ..> UC_UpdateStock : <<include>>
+UC_UpdateStock ..> UC_GenerateReceipt : <<include>>
+UC_CheckCompliance <.. UC_ReportIssue : <<extend>>
+UC_ViewSuppliers <.. UC_SearchSupplier : <<extend>>
+UC_CreatePO <.. UC_ApplyOrderDiscount : <<extend>>
+UC_SupplierAnalysis ..> UC_RateSupplier : <<include>>
+
+@enduml

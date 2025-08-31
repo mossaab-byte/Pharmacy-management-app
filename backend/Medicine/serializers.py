@@ -15,6 +15,7 @@ class MedicineSerializer(serializers.ModelSerializer):
     nom = serializers.CharField()
     prix_public = serializers.DecimalField(source='prix_br', max_digits=8, decimal_places=2)
     ppv = serializers.DecimalField(source='prix_br', max_digits=8, decimal_places=2)  # Alternative price field
+    ph = serializers.DecimalField(max_digits=8, decimal_places=2, required=False)  # Cost price for purchases
     nom_commercial = serializers.CharField(source='nom')  # Use nom as commercial name
     stock = serializers.SerializerMethodField()  # Real pharmacy stock
     
@@ -45,6 +46,6 @@ class MedicineSerializer(serializers.ModelSerializer):
             'form', 'presentation', 'public_price', 'cost_price',
             'princeps_generique', 'taux_remboursement', 'remise', 'tva', 'type',
             # Add frontend-expected fields
-            'nom', 'prix_public', 'ppv', 'nom_commercial', 'forme', 'stock'
+            'nom', 'prix_public', 'ppv', 'ph', 'nom_commercial', 'forme', 'stock'
         ]
         read_only_fields = fields

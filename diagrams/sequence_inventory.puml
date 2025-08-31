@@ -1,0 +1,43 @@
+@startuml Inventory Management Sequence
+
+title Inventory Update Process
+
+actor "Pharmacist" as Pharmacist
+participant "Frontend" as Frontend
+participant "Inventory API" as InventoryAPI
+participant "Alert Service" as AlertService
+participant "Database" as DB
+
+Pharmacist -> Frontend: Check inventory levels
+Frontend -> InventoryAPI: GET /api/inventory/
+
+activate InventoryAPI
+InventoryAPI -> DB: Get current stock levels
+DB -> InventoryAPI: Stock data
+InventoryAPI -> Frontend: Inventory list
+deactivate InventoryAPI
+
+Frontend -> Pharmacist: Display stock levels
+
+alt Stock level low
+  Frontend -> AlertService: Check for low stock
+  activate AlertService
+  AlertService -> DB: Get minimum stock levels
+  DB -> AlertService: Threshold data
+  AlertService -> AlertService: Compare current vs minimum
+  AlertService -> Frontend: Low stock alert
+  deactivate AlertService
+  Frontend -> Pharmacist: Display alert
+  
+  Pharmacist -> Frontend: Update stock manually
+  Frontend -> InventoryAPI: PUT /api/inventory/{id}/\n{new_quantity}
+  
+  activate InventoryAPI
+  InventoryAPI -> DB: Update stock quantity
+  InventoryAPI -> DB: Log inventory change
+  DB -> InventoryAPI: Update confirmed
+  InventoryAPI -> Frontend: Stock updated
+  deactivate InventoryAPI
+end
+
+@enduml

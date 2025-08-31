@@ -8,3 +8,5 @@ export { default as Table } from './Table';
 export { default as Select } from './Select'; 
 export { default as Checkbox} from './Checkbox';
 export { default as Textarea } from './Textarea';
+export { default as DataRefreshButton } from './DataRefreshButton';
+export { default as EmergencyFixButton } from './EmergencyFixButton';

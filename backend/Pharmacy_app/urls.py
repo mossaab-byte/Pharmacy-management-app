@@ -14,5 +14,6 @@ urlpatterns = [
     path('api/inventory/', include('Inventory.urls')),
     path('api/dashboard/', include('Dashboard.urls')),
     path('api/utils/', include('utils.urls')),
+    path('api/employee/', include('Employee.urls')),
     path('', include('Finance.urls')),  # Finance URLs already include api/finance/ prefix
 ]

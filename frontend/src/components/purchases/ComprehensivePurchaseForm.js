@@ -85,7 +85,7 @@ const ComprehensivePurchaseForm = () => {
         medicine_id: medicine.id,
         medicine: medicine,
         quantity: 1,
-        unit_cost: medicine.unit_cost || medicine.prix_public * 0.8 || 0 // Assume 20% margin
+        unit_cost: medicine.ph || medicine.unit_cost || 0 // Use ph (cost price) first
       };
       setItems([...items, newItem]);
       showNotification(`Added ${medicine.nom} to purchase`, 'success');

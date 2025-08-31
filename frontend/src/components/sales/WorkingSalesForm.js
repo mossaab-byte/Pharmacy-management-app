@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Minus, Save, ShoppingCart, Scan, UserPlus } from 'lucide-react';
+import { Plus, Minus, Save, ShoppingCart, UserPlus } from 'lucide-react';
 import { Button } from '../UI';
+import MedicineSearchWithBarcode from '../common/MedicineSearchWithBarcode';
 import SimpleMedicineAutocomplete from '../common/SimpleMedicineAutocomplete';
 import SimpleCustomerCreateModal from '../Customers/SimpleCustomerCreateModal';
 import * as salesServiceModule from '../../services/salesServiceNew';
 import customerService from '../../services/customerService';
+import { useDashboard } from '../../context/SimpleDashboardContext';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 const salesService = salesServiceModule.default || salesServiceModule;
 
 const WorkingSalesForm = () => {
   const navigate = useNavigate();
   const { id: saleId } = useParams(); // Get sale ID for edit mode
   const isEditMode = Boolean(saleId);
+  const { refreshData } = useDashboard(); // Get refresh function from dashboard context
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [saleItems, setSaleItems] = useState([{ 
@@ -24,12 +28,10 @@ const WorkingSalesForm = () => {
   }]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [scannerActive, setScannerActive] = useState(true);
-  const [scannedCode, setScannedCode] = useState('');
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   
-  // Référence pour le scanner automatique
-  const scannerInputRef = useRef(null);
+  // Scanner automatique states
+  const [scannedCode, setScannedCode] = useState('');
   const scanTimeoutRef = useRef(null);
 
   // Load real customers from API
@@ -39,39 +41,57 @@ const WorkingSalesForm = () => {
       const apiCustomers = await customerService.getAll();
       console.log('✅ Loaded customers:', apiCustomers);
       
-      // Format customers for the dropdown
-      const formattedCustomers = [
-        { id: 'passage', name: 'Client de passage', phone: 'N/A', isDefault: true },
-        ...apiCustomers.map(customer => ({
-          id: customer.id,
-          name: customer.full_name || (customer.user ? `${customer.user.first_name} ${customer.user.last_name}`.trim() : 'Unknown Customer'),
-          phone: customer.phone || 'N/A',
-          balance: Number(customer.balance) || 0,
-          credit_limit: Number(customer.credit_limit) || 0
-        }))
+      // Format customers for dropdown
+      const formattedCustomers = apiCustomers.map(customer => ({
+        id: customer.id,
+        name: `${customer.user.first_name} ${customer.user.last_name}`.trim() || customer.user.username,
+        email: customer.user.email,
+        phone: customer.phone || '',
+        address: customer.address || '',
+        credit_limit: customer.credit_limit || 0
+      }));
+      
+      // Add "Client de passage" option at the beginning
+      const allCustomers = [
+        { id: 'passage', name: 'Client de passage' },
+        ...formattedCustomers
       ];
       
-      setCustomers(formattedCustomers);
-      console.log('✅ Formatted customers for dropdown:', formattedCustomers);
+      setCustomers(allCustomers);
+      console.log('✅ Formatted customers for dropdown:', allCustomers);
+      
+      // Select "Client de passage" by default if not in edit mode
+      if (!isEditMode) {
+        setSelectedCustomer('passage');
+      }
     } catch (error) {
       console.error('❌ Error loading customers:', error);
-      // Fallback to default customer only
-      setCustomers([
-        { id: 'passage', name: 'Client de passage', phone: 'N/A', isDefault: true }
-      ]);
+      setCustomers([{ id: 'passage', name: 'Client de passage' }]);
+      setSelectedCustomer('passage');
     }
   };
 
-  // Handle customer creation from modal
+  // Load data on component mount
+  useEffect(() => {
+    loadCustomers();
+    
+    // Load existing sale data if in edit mode
+    if (isEditMode && saleId) {
+      loadExistingSale();
+    }
+  }, [isEditMode, saleId]);
+
+  // Handle customer creation
   const handleCustomerCreated = (newCustomer) => {
     console.log('✅ New customer created:', newCustomer);
     
-    // Add the new customer to the list
+    // Add to customers list
     const formattedCustomer = {
       id: newCustomer.id,
-      name: newCustomer.full_name || `${newCustomer.user?.first_name || ''} ${newCustomer.user?.last_name || ''}`.trim(),
-      phone: newCustomer.phone || 'N/A',
-      balance: newCustomer.balance || 0,
+      name: `${newCustomer.user.first_name} ${newCustomer.user.last_name}`.trim() || newCustomer.user.username,
+      email: newCustomer.user.email,
+      phone: newCustomer.phone || '',
+      address: newCustomer.address || '',
       credit_limit: newCustomer.credit_limit || 0
     };
     
@@ -105,13 +125,16 @@ const WorkingSalesForm = () => {
         const formattedItems = saleData.items.map((item, index) => ({
           id: index + 1,
           medicine: {
-            id: item.pharmacy_medicine || item.medicine_id,
+            id: item.medicine_id,  // Use the actual medicine_id from the backend
             nom: item.medicine_name,
-            prix: item.unit_price
+            nom_commercial: item.medicine_name,
+            prix: item.unit_price,
+            prix_public: item.unit_price,
+            ppv: item.unit_price
           },
           quantity: item.quantity,
-          unitPrice: item.unit_price,
-          total: item.quantity * item.unit_price
+          unitPrice: parseFloat(item.unit_price),
+          total: parseFloat(item.subtotal)
         }));
         
         setSaleItems(formattedItems);
@@ -128,77 +151,82 @@ const WorkingSalesForm = () => {
     }
   };
 
+  // ✨ SCANNER AUTOMATIQUE - Détecte les scans sans cliquer dans un champ
   useEffect(() => {
-    loadCustomers();
-    
-    if (isEditMode && saleId) {
-      loadExistingSale();
-    } else {
-      // Sélectionner "Client de passage" par défaut pour nouvelle vente
-      setSelectedCustomer('passage');
-    }
-    
-    // Setup barcode scanner listener
-    const handleKeyPress = (e) => {
-      if (!scannerActive) return;
-      
-      // Les scanners de code-barres tapent très rapidement
-      // Nous détectons une séquence rapide de caractères suivie d'Enter
-      if (e.key === 'Enter' && scannedCode.length > 5) {
-        handleBarcodeScanned(scannedCode);
+    const handleAutoScan = (e) => {
+      // Ignorer si on est en train de taper dans un input ou textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Détecter une séquence rapide de caractères (typique d'un scanner)
+      if (e.key === 'Enter' && scannedCode.length >= 5) {
+        console.log('🔍 Auto-scan détecté:', scannedCode);
+        handleBarcodeAutoScan(scannedCode);
         setScannedCode('');
         return;
       }
-      
-      // Accumuler les caractères du code-barres
-      if (e.key.length === 1) { // caractère normal (pas une touche de contrôle)
+
+      // Accumuler les caractères du scan
+      if (e.key.length === 1) {
         setScannedCode(prev => prev + e.key);
         
-        // Reset après 100ms d'inactivité (typing normal vs scanner)
+        // Reset après 100ms d'inactivité (différence entre scan et frappe manuelle)
         clearTimeout(scanTimeoutRef.current);
         scanTimeoutRef.current = setTimeout(() => {
           setScannedCode('');
         }, 100);
       }
     };
-    
-    document.addEventListener('keypress', handleKeyPress);
+
+    document.addEventListener('keypress', handleAutoScan);
     
     return () => {
-      document.removeEventListener('keypress', handleKeyPress);
+      document.removeEventListener('keypress', handleAutoScan);
       clearTimeout(scanTimeoutRef.current);
     };
-  }, [isEditMode, saleId, scannerActive, scannedCode]);
+  }, [scannedCode]);
 
-  // Fonction pour gérer le scan de code-barres
-  const handleBarcodeScanned = async (barcode) => {
-    console.log('🔍 Code-barres scanné:', barcode);
-    
+  // ✨ GESTION DU SCAN AUTOMATIQUE
+  const handleBarcodeAutoScan = async (barcode) => {
     try {
-      // Rechercher le médicament par code-barres
-      const response = await fetch(`http://localhost:8000/api/medicine/medicines/search_all/?limit=6000`);
+      console.log('🔍 Recherche automatique pour:', barcode);
       
-      if (response.ok) {
-        const data = await response.json();
-        let medicines = Array.isArray(data) ? data : data.results || [];
-        
-        // Chercher le médicament avec ce code
-        const foundMedicine = medicines.find(med => 
-          med.code === barcode || 
-          med.code_barre === barcode ||
-          med.code?.toString() === barcode
-        );
-        
-        if (foundMedicine) {
-          addOrUpdateMedicine(foundMedicine);
-          setMessage(`✅ Médicament ajouté: ${foundMedicine.nom_commercial || foundMedicine.nom}`);
-        } else {
-          setMessage(`⚠️ Aucun médicament trouvé pour le code: ${barcode}`);
+      // Rechercher le médicament par code-barres
+      const response = await fetch(
+        `${API_URL}/medicine/medicines/quick_search/?q=${encodeURIComponent(barcode)}&limit=1`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
         }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la recherche');
+      }
+
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const medicine = data[0];
+        console.log('✅ Médicament trouvé:', medicine.name || medicine.nom_commercial);
+        
+        // Ajouter directement au panier
+        addOrUpdateMedicine(medicine);
+        
+        setMessage(`✅ ${medicine.name || medicine.nom_commercial} ajouté au panier par scan!`);
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        console.log('❌ Aucun médicament trouvé pour:', barcode);
+        setMessage(`❌ Aucun médicament trouvé pour le code: ${barcode}`);
+        setTimeout(() => setMessage(''), 3000);
       }
     } catch (error) {
-      console.error('❌ Erreur lors de la recherche:', error);
-      setMessage(`❌ Erreur lors de la recherche du code: ${barcode}`);
+      console.error('Erreur scan automatique:', error);
+      setMessage('Erreur lors du scan automatique');
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -294,232 +322,99 @@ const WorkingSalesForm = () => {
     }));
   };
 
-  const handleMedicineSelect = (itemId, medicine) => {
-    if (!medicine) return;
+  const handleMedicineSelect = (medicine, itemId) => {
+    console.log('🔄 Medicine selected:', medicine);
     
-    console.log('🎯 Médicament sélectionné:', medicine.nom_commercial || medicine.nom);
-    console.log('🔍 Données médicament reçues:', {
-      id: medicine.id,
-      nom: medicine.nom || medicine.nom_commercial,
-      prix_public: medicine.prix_public,
-      ppv: medicine.ppv,
-      public_price: medicine.public_price
-    });
-    
-    // Vérifier si existe déjà AVANT modification
-    const existingItem = saleItems.find(item => 
-      item.medicine && item.medicine.id === medicine.id
-    );
-    
-    // Utiliser la logique intelligente d'ajout/incrémentation
-    addOrUpdateMedicine(medicine);
-    
-    // Message basé sur l'état AVANT modification
-    if (existingItem) {
-      setMessage(`✅ Quantité augmentée: ${medicine.nom_commercial || medicine.nom} (${existingItem.quantity} → ${existingItem.quantity + 1})`);
-    } else {
-      setMessage(`✅ Médicament ajouté: ${medicine.nom_commercial || medicine.nom}`);
+    if (medicine) {
+      const price = parseFloat(medicine.prix_public || medicine.ppv || medicine.public_price || 0);
+      
+      updateSaleItem(itemId, 'medicine', medicine);
+      updateSaleItem(itemId, 'unitPrice', price);
+      updateSaleItem(itemId, 'total', price);
+      
+      setMessage(`✅ ${medicine.nom_commercial || medicine.nom} ajouté - Prix: ${price}€`);
+      setTimeout(() => setMessage(''), 3000);
     }
-    
-    // Effacer le message après 3 secondes
-    setTimeout(() => setMessage(''), 3000);
-    
-    console.log(`✅ Médicament traité : ${medicine.nom_commercial || medicine.nom}`);
   };
 
-  const calculateGrandTotal = () => {
-    return saleItems.reduce((total, item) => total + item.total, 0);
+  const calculateTotal = () => {
+    return saleItems.reduce((total, item) => total + (item.total || 0), 0).toFixed(2);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(`🚀 HandleSubmit called! Mode: ${isEditMode ? 'EDIT' : 'CREATE'}`);
     
-    // Check token before submission
-    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-    console.log('🔐 Token check:', token ? 'Token exists' : 'No token found');
+    if (loading) return;
     
-    // First, let's validate the basic requirements and show alerts
-    if (!selectedCustomer) {
-      alert('⚠️ Veuillez sélectionner un client');
-      setMessage('⚠️ Veuillez sélectionner un client');
-      return;
-    }
-
-    const validItems = saleItems.filter(item => item.medicine && item.quantity > 0);
-    if (validItems.length === 0) {
-      alert('⚠️ Veuillez ajouter au moins un médicament');
-      setMessage('⚠️ Veuillez ajouter au moins un médicament');
-      return;
-    }
-
-    // Validate that all items have valid prices
-    const itemsWithZeroPrice = validItems.filter(item => !item.unitPrice || item.unitPrice <= 0);
-    if (itemsWithZeroPrice.length > 0) {
-      const medicineNames = itemsWithZeroPrice.map(item => item.medicine?.nom_commercial || item.medicine?.nom || 'Unknown').join(', ');
-      alert(`⚠️ Prix manquant pour: ${medicineNames}`);
-      setMessage(`⚠️ Prix manquant pour: ${medicineNames}`);
-      return;
-    }
-
-    console.log('✅ Validation passed, proceeding with sale operation...');
-    console.log('Customer:', selectedCustomer);
-    console.log('Valid items:', validItems);
+    setLoading(true);
+    setMessage('');
     
     try {
-      setLoading(true);
-      setMessage(isEditMode ? '💾 Mise à jour en cours...' : '💾 Enregistrement en cours...');
+      console.log('🚀 Submitting sale...');
       
-      // Préparer les données pour l'API
-      const saleData = {
-        customer: selectedCustomer === 'passage' ? null : selectedCustomer,
-        items: validItems.map(item => ({
-          medicine_id: item.medicine.id,  // Send medicine_id, backend will convert to pharmacy_medicine
-          quantity: item.quantity,
-          unit_price: item.unitPrice
-        }))
-      };
+      // Validate sale items
+      const validItems = saleItems.filter(item => 
+        item.medicine && 
+        item.quantity > 0 && 
+        item.unitPrice > 0
+      );
       
-      console.log('💾 Envoi des données vente:', saleData);
-      
-      // TEST: Try to call the API
-      try {
-        let response;
-        
-        if (isEditMode) {
-          // Update existing sale
-          console.log('✅ Updating existing sale:', saleId);
-          if (salesService && salesService.updateSale) {
-            response = await salesService.updateSale(saleId, saleData);
-          } else {
-            // Fallback: Direct API call for update
-            const { apiClient } = await import('../../services/apiClient');
-            response = await apiClient.put(`/sales/sales/${saleId}/`, saleData);
-            response = response.data;
-          }
-          setMessage('✅ Vente mise à jour avec succès !');
-        } else {
-          // Create new sale  
-          if (salesService && salesService.createSale) {
-            console.log('✅ Using salesService.createSale');
-            response = await salesService.createSale(saleData);
-          } else {
-            console.log('⚠️ salesService.createSale not available, using direct API call');
-            // Fallback: Direct API call
-            const { apiClient } = await import('../../services/apiClient');
-            response = await apiClient.post('/sales/sales/', saleData);
-            response = response.data;
-          }
-          setMessage('✅ Vente enregistrée avec succès !');
-        }
-        
-        console.log('✅ Vente opération réussie:', response);
-        
-        if (!isEditMode) {
-          // Reset form only for new sales
-          setSaleItems([{ id: 1, medicine: null, quantity: 1, unitPrice: 0, total: 0 }]);
-          setSelectedCustomer('passage');
-        }
-        
-        // Redirect based on mode
-        setTimeout(() => {
-          if (isEditMode) {
-            navigate(`/sales/${saleId}`); // Go back to sale detail view
-          } else {
-            navigate('/dashboard'); // Go to dashboard for new sales
-          }
-        }, 1500);
-        
-      } catch (apiError) {
-        console.error('❌ API Error:', apiError);
-        console.log('🔍 Error response data:', apiError.response?.data);
-        console.log('🔍 Error response status:', apiError.response?.status);
-        console.log('🔍 Error response headers:', apiError.response?.headers);
-        
-        // Handle authentication errors specifically
-        if (apiError.response?.status === 401) {
-          console.error('🔐 Authentication error - redirecting to login');
-          setMessage('❌ Session expirée. Redirection vers la connexion...');
-          setTimeout(() => {
-            window.location.href = '/login?session_expired=true';
-          }, 1500);
-          return;
-        }
-        
-        // Handle specific stock validation errors
-        if (apiError.response?.data?.stock_error) {
-          setMessage(`❌ ${apiError.response.data.stock_error}`);
-        } else if (apiError.response?.data?.items) {
-          // Handle item validation errors
-          const itemErrors = apiError.response.data.items;
-          console.log('🔍 Item errors:', itemErrors);
-          if (itemErrors[0]?.stock_error) {
-            setMessage(`❌ ${itemErrors[0].stock_error}`);
-          } else {
-            setMessage(`❌ Erreur de validation: ${JSON.stringify(itemErrors)}`);
-          }
-        } else if (apiError.response?.data?.details) {
-          console.log('🔍 Validation details:', apiError.response.data.details);
-          console.log('🔍 Items in details:', apiError.response.data.details.items);
-          
-          // Check if items array has validation errors
-          if (apiError.response.data.details.items && apiError.response.data.details.items.length > 0) {
-            const itemError = apiError.response.data.details.items[0];
-            console.log('🔍 First item error:', itemError);
-            
-            // Look for stock_error in the item
-            if (itemError.stock_error) {
-              setMessage(`❌ ${itemError.stock_error}`);
-            } else if (typeof itemError === 'string') {
-              setMessage(`❌ ${itemError}`);
-            } else {
-              setMessage(`❌ Erreur de validation: ${JSON.stringify(itemError)}`);
-            }
-          } else {
-            setMessage(`❌ Erreur de validation: ${JSON.stringify(apiError.response.data.details)}`);
-          }
-        } else {
-          setMessage(`❌ Erreur API: ${apiError.message}`);
-        }
-      }
-      
-    } catch (error) {
-      console.error('❌ Erreur lors de l\'enregistrement:', error);
-      
-      // Handle authentication errors
-      if (error.response?.status === 401) {
-        console.error('🔐 Authentication error in outer catch - redirecting to login');
-        setMessage('❌ Session expirée. Redirection vers la connexion...');
-        setTimeout(() => {
-          window.location.href = '/login?session_expired=true';
-        }, 1500);
+      if (validItems.length === 0) {
+        setMessage('❌ Veuillez ajouter au moins un médicament à la vente');
+        setLoading(false);
         return;
       }
       
-      let errorMessage = 'Erreur lors de l\'enregistrement de la vente';
+      // Prepare sale data
+      const saleData = {
+        customer: selectedCustomer === 'passage' ? null : selectedCustomer,
+        items: validItems.map(item => ({
+          medicine_id: item.medicine.id,  // Use medicine_id as required by backend
+          quantity: parseInt(item.quantity),
+          unit_price: parseFloat(item.unitPrice)
+        }))
+      };
       
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        if (errorData.stock_error) {
-          errorMessage = errorData.stock_error;
-        } else if (errorData.detail) {
-          errorMessage = errorData.detail;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (errorData.items) {
-          // Check if any item has stock error
-          const stockError = errorData.items.find(item => item.stock_error);
-          if (stockError) {
-            errorMessage = stockError.stock_error;
-          } else {
-            errorMessage = 'Erreur dans les articles de la vente';
-          }
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
+      console.log('📦 Sale data to submit:', saleData);
+      
+      let result;
+      if (isEditMode) {
+        result = await salesService.updateSale(saleId, saleData);
+        console.log('✅ Sale updated:', result);
+        setMessage('✅ Vente modifiée avec succès!');
+      } else {
+        result = await salesService.createSale(saleData);
+        console.log('✅ Sale created:', result);
+        setMessage('✅ Vente créée avec succès!');
       }
       
-      setMessage('❌ ' + errorMessage);
+      // Refresh dashboard data
+      if (refreshData) {
+        refreshData();
+      }
+      
+      // Navigate back to sales list after a short delay
+      setTimeout(() => {
+        navigate('/sales');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('❌ Error submitting sale:', error);
+      
+      if (error.response?.data) {
+        console.error('Server error details:', error.response.data);
+        
+        // Handle specific validation errors
+        if (error.response.data.items) {
+          setMessage(`❌ Erreur validation: ${JSON.stringify(error.response.data.items)}`);
+        } else if (error.response.data.detail) {
+          setMessage(`❌ Erreur: ${error.response.data.detail}`);
+        } else {
+          setMessage('❌ Erreur lors de la sauvegarde de la vente');
+        }
+      } else {
+        setMessage('❌ Erreur lors de la sauvegarde de la vente');
+      }
     } finally {
       setLoading(false);
     }
@@ -536,29 +431,16 @@ const WorkingSalesForm = () => {
             </h1>
           </div>
           
-          {/* Scanner Status */}
-          <div className="flex items-center space-x-2">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              scannerActive 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-600'
-            }`}>
-              <Scan className={`h-4 w-4 ${scannerActive ? 'text-green-600' : 'text-gray-400'}`} />
-              <span>{scannerActive ? 'Scanner Actif' : 'Scanner Inactif'}</span>
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-2xl font-bold text-green-600">{calculateTotal()} DH</p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setScannerActive(!scannerActive)}
-            >
-              {scannerActive ? 'Désactiver' : 'Activer'} Scanner
-            </Button>
           </div>
         </div>
         
         {message && (
-          <div className={`p-3 rounded-md ${
+          <div className={`p-3 rounded-md mb-4 ${
             message.includes('✅') ? 'bg-green-50 text-green-800 border border-green-200' :
             message.includes('❌') ? 'bg-red-50 text-red-800 border border-red-200' :
             'bg-yellow-50 text-yellow-800 border border-yellow-200'
@@ -566,257 +448,149 @@ const WorkingSalesForm = () => {
             {message}
           </div>
         )}
-        
-        {/* Scanner Guide */}
-        {scannerActive && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <div className="flex items-center space-x-2">
-              <Scan className="h-4 w-4 text-blue-600" />
-              <span className="text-sm text-blue-800">
-                Scanner prêt - Scannez un code-barres pour ajouter automatiquement un médicament
-              </span>
-            </div>
-            {scannedCode && (
-              <div className="mt-2 text-xs text-blue-600">
-                Lecture en cours: {scannedCode}...
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Selection */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Client *
-            </label>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Client</h3>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={() => setShowCustomerModal(true)}
-              className="flex items-center space-x-1"
+              className="inline-flex items-center px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
             >
-              <UserPlus className="h-4 w-4" />
-              <span>Nouveau Client</span>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Nouveau Client
             </Button>
           </div>
           
           <select
             value={selectedCustomer}
             onChange={(e) => setSelectedCustomer(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             {customers.map(customer => (
-              <option 
-                key={customer.id} 
-                value={customer.id}
-                className={customer.id === 'passage' ? 'font-semibold bg-blue-50' : ''}
-              >
-                {customer.id === 'passage' ? '👤 ' : ''}
-                {customer.name} 
-                {customer.phone !== 'N/A' && ` - ${customer.phone}`}
-                {customer.id === 'passage' ? ' (Par défaut)' : ''}
-                {Number(customer.balance || 0) > 0 && ` - Solde: ${Number(customer.balance || 0).toFixed(2)} MAD`}
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
               </option>
             ))}
           </select>
-          
-          {/* Customer Information Display */}
-          <div className="mt-2">
-            {selectedCustomer === 'passage' ? (
-              <div className="flex items-center space-x-2 text-sm text-blue-600">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <span>Vente au comptant - Aucune information client requise</span>
-              </div>
-            ) : selectedCustomer && (
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2 text-sm text-green-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span>Client régulier - Facture nominative</span>
-                </div>
-                {(() => {
-                  const customer = customers.find(c => c.id === selectedCustomer);
-                  if (customer && customer.balance > 0) {
-                    return (
-                      <div className="text-sm text-orange-600">
-                        <span className="font-medium">Solde en cours: {customer.balance.toFixed(2)} MAD</span>
-                        {Number(customer.credit_limit || 0) > 0 && (
-                          <span className="ml-2">
-                            (Limite: {Number(customer.credit_limit || 0).toFixed(2)} MAD)
-                          </span>
-                        )}
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Sale Items */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Articles de la vente</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Articles</h3>
             <Button
               type="button"
               onClick={addSaleItem}
-              className="flex items-center space-x-2"
+              className="inline-flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              <Plus className="h-4 w-4" />
-              <span>Ajouter un article</span>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter Article
             </Button>
           </div>
-
-          {saleItems.map((item, index) => (
-            <div key={item.id} className="bg-gray-50 p-4 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                {/* Medicine Selection */}
-                <div className="md:col-span-5">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Médicament *
-                  </label>
-                  <SimpleMedicineAutocomplete
-                    onSelect={(medicine) => handleMedicineSelect(item.id, medicine)}
-                    selectedMedicine={item.medicine}
-                    placeholder="Rechercher un médicament..."
-                  />
-                </div>
-
-                {/* Quantity */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Quantité
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => updateSaleItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Unit Price */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Prix unitaire (MAD)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={item.unitPrice}
-                    onChange={(e) => updateSaleItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Total */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Total (DH)
-                  </label>
-                  <div className="p-3 bg-gray-100 rounded-lg text-lg font-semibold text-gray-900">
-                    {item.total.toFixed(2)}
+          
+          <div className="space-y-3">
+            {saleItems.map((item, index) => (
+              <div key={item.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <div className="col-span-5">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Médicament {index + 1}
+                    </label>
+                    <SimpleMedicineAutocomplete
+                      value={item.medicine}
+                      onChange={(medicine) => handleMedicineSelect(medicine, item.id)}
+                      placeholder="Rechercher un médicament..."
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Quantité
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => updateSaleItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Prix Unit. (DH)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.unitPrice}
+                      onChange={(e) => updateSaleItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Total (DH)
+                    </label>
+                    <input
+                      type="text"
+                      value={item.total.toFixed(2)}
+                      readOnly
+                      className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+                  
+                  <div className="col-span-1 flex justify-center">
+                    {saleItems.length > 1 && (
+                      <Button
+                        type="button"
+                        onClick={() => removeSaleItem(item.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-
-                {/* Remove Button */}
-                <div className="md:col-span-1">
-                  {saleItems.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => removeSaleItem(item.id)}
-                      className="w-full flex items-center justify-center"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Grand Total */}
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-medium text-gray-900">Total de la vente:</span>
-            <span className="text-2xl font-bold text-blue-600">
-              {calculateGrandTotal().toFixed(2)} MAD
-            </span>
+            ))}
           </div>
         </div>
 
-        {/* Submit Buttons */}
-        <div className="flex space-x-4">
+        {/* Submit Button */}
+        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <Button
+            type="button"
+            onClick={() => navigate('/sales')}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          >
+            Annuler
+          </Button>
           <Button
             type="submit"
             disabled={loading}
-            className="flex items-center space-x-2"
-            onClick={(e) => {
-              console.log('🖱️ Submit button clicked!', e);
-              console.log('Current form state:');
-              console.log('- Selected customer:', selectedCustomer);
-              console.log('- Sale items:', saleItems);
-              console.log('- Loading:', loading);
-              
-              // Check if form is valid
-              const validItems = saleItems.filter(item => item.medicine && item.quantity > 0);
-              console.log('- Valid items:', validItems);
-              
-              if (!selectedCustomer) {
-                console.log('❌ Validation failed: No customer selected');
-                alert('Aucun client sélectionné!');
-                e.preventDefault();
-                return false;
-              }
-              
-              if (validItems.length === 0) {
-                console.log('❌ Validation failed: No valid items');
-                alert('Aucun médicament valide!');
-                e.preventDefault();
-                return false;
-              }
-              
-              console.log('✅ Basic validation passed, form should submit');
-            }}
+            className="inline-flex items-center px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            <Save className="h-4 w-4" />
-            <span>
-              {loading 
-                ? (isEditMode ? 'Mise à jour...' : 'Enregistrement...') 
-                : (isEditMode ? 'Mettre à jour la vente' : 'Enregistrer la vente')
-              }
-            </span>
-          </Button>
-          
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setSaleItems([{ id: 1, medicine: null, quantity: 1, unitPrice: 0, total: 0 }]);
-              setSelectedCustomer('passage'); // Garder "Client de passage" sélectionné
-              setMessage('');
-            }}
-          >
-            Annuler
+            <Save className="h-4 w-4 mr-2" />
+            {loading ? 'Sauvegarde...' : (isEditMode ? 'Modifier' : 'Créer')} Vente
           </Button>
         </div>
       </form>
 
       {/* Customer Creation Modal */}
-      <SimpleCustomerCreateModal
-        isOpen={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
-        onCustomerCreated={handleCustomerCreated}
-      />
+      {showCustomerModal && (
+        <SimpleCustomerCreateModal
+          isOpen={showCustomerModal}
+          onClose={() => setShowCustomerModal(false)}
+          onCustomerCreated={handleCustomerCreated}
+        />
+      )}
     </div>
   );
 };

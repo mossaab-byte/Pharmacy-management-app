@@ -1,0 +1,45 @@
+@startuml User Authentication Use Cases
+
+title User Authentication & Authorization
+
+left to right direction
+
+actor "Pharmacist" as pharmacist
+actor "Manager" as manager
+
+package "Authentication System" {
+  usecase "Register Account" as UC1
+  usecase "Login" as UC2
+  usecase "Logout" as UC3
+  usecase "Reset Password" as UC4
+  usecase "View Profile" as UC5
+  usecase "Update Profile" as UC6
+}
+
+package "Authorization" {
+  usecase "Access Dashboard" as UC7
+  usecase "Manage Permissions" as UC8
+}
+
+' Pharmacist relationships
+pharmacist --> UC1
+pharmacist --> UC2
+pharmacist --> UC3
+pharmacist --> UC4
+pharmacist --> UC5
+pharmacist --> UC6
+pharmacist --> UC7
+pharmacist --> UC8
+
+' Manager relationships
+manager --> UC2
+manager --> UC3
+manager --> UC4
+manager --> UC5
+manager --> UC6
+manager --> UC7
+
+' Include relationships
+UC2 ..> UC7 : <<include>>
+
+@enduml

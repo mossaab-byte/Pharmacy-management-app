@@ -1,0 +1,39 @@
+@startuml Purchase Order Sequence
+
+title Purchase Order Process
+
+actor "Manager" as Manager
+participant "Frontend" as Frontend
+participant "Purchase API" as PurchaseAPI
+participant "Supplier API" as SupplierAPI
+participant "Database" as DB
+
+Manager -> Frontend: Create purchase order
+Frontend -> SupplierAPI: GET /api/suppliers/
+SupplierAPI -> DB: Get supplier list
+DB -> SupplierAPI: Supplier data
+SupplierAPI -> Frontend: Display suppliers
+
+Manager -> Frontend: Select supplier\n& add medicines
+Frontend -> PurchaseAPI: POST /api/purchases/\n{supplier, items[]}
+
+activate PurchaseAPI
+PurchaseAPI -> DB: Begin transaction
+PurchaseAPI -> DB: Create purchase record
+
+loop For each item
+  PurchaseAPI -> DB: Create purchase item
+  PurchaseAPI -> DB: Update expected stock
+end
+
+PurchaseAPI -> DB: Calculate total amount
+PurchaseAPI -> DB: Update supplier balance
+PurchaseAPI -> DB: Create supplier transaction
+PurchaseAPI -> DB: Commit transaction
+
+PurchaseAPI -> Frontend: Purchase order created
+deactivate PurchaseAPI
+
+Frontend -> Manager: Order confirmation
+
+@enduml

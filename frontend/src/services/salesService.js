@@ -5,6 +5,15 @@ const salesService = {
   createSale: async (saleData) => {
     try {
       const response = await apiClient.post('/sales/sales/', saleData);
+      
+      // After successful sale creation, trigger inventory refresh
+      console.log('✅ Sale created successfully, triggering inventory refresh...');
+      
+      // Dispatch a custom event to notify other components about the sale
+      window.dispatchEvent(new CustomEvent('inventoryUpdated', { 
+        detail: { reason: 'sale_created', saleId: response.data.id } 
+      }));
+      
       return response.data;
     } catch (error) {
       console.error('Erreur création vente:', error);
@@ -41,6 +50,15 @@ const salesService = {
   deleteSale: async (id) => {
     try {
       const response = await apiClient.delete(`/sales/sales/${id}/`);
+      
+      // After successful sale deletion, trigger inventory refresh
+      console.log('✅ Sale deleted successfully, triggering inventory refresh...');
+      
+      // Dispatch a custom event to notify other components about the sale deletion
+      window.dispatchEvent(new CustomEvent('inventoryUpdated', { 
+        detail: { reason: 'sale_deleted', saleId: id } 
+      }));
+      
       return response.data;
     } catch (error) {
       console.error('Erreur suppression vente:', error);

@@ -1,0 +1,84 @@
+@startuml Pharmacy Management System - Purchase Process Sequence Diagram
+
+title Purchase & Inventory Management Process
+
+actor "Pharmacist/Manager" as User
+participant "Frontend\n(React)" as Frontend
+participant "Purchase API\n(Django REST)" as PurchaseAPI
+participant "Supplier API\n(Django REST)" as SupplierAPI
+participant "Inventory API\n(Django REST)" as InventoryAPI
+participant "Database" as DB
+
+== Purchase Order Process ==
+
+User -> Frontend: Create new purchase order
+Frontend -> SupplierAPI: GET /api/purchases/suppliers/
+SupplierAPI -> DB: Query suppliers
+DB -> SupplierAPI: Supplier list
+SupplierAPI -> Frontend: Supplier data
+Frontend -> User: Display supplier selection
+
+User -> Frontend: Select supplier\n& add medicines
+Frontend -> Frontend: Search medicines from catalog
+Frontend -> User: Display medicine selection
+
+User -> Frontend: Enter quantities & unit costs
+Frontend -> PurchaseAPI: POST /api/purchases/purchases/\n{supplier, items[]}
+
+activate PurchaseAPI
+PurchaseAPI -> PurchaseAPI: Validate purchase data
+PurchaseAPI -> DB: Begin transaction
+
+PurchaseAPI -> DB: Create Purchase record
+DB -> PurchaseAPI: Purchase created
+
+loop For each purchase item
+  PurchaseAPI -> DB: Create PurchaseItem record
+  DB -> PurchaseAPI: PurchaseItem created
+end
+
+PurchaseAPI -> DB: Calculate & update purchase total
+DB -> PurchaseAPI: Total updated
+
+PurchaseAPI -> DB: Create SupplierTransaction\n(type: purchase)
+DB -> PurchaseAPI: Transaction created
+
+PurchaseAPI -> DB: Update supplier balance
+DB -> PurchaseAPI: Balance updated
+
+PurchaseAPI -> DB: Commit transaction
+PurchaseAPI -> Frontend: Purchase order created
+
+deactivate PurchaseAPI
+
+Frontend -> User: Display purchase confirmation
+
+== Receiving Goods Process ==
+
+User -> Frontend: Receive goods\n(finalize purchase)
+Frontend -> PurchaseAPI: POST /api/purchases/purchases/{id}/finalize/
+
+activate PurchaseAPI
+PurchaseAPI -> DB: Begin transaction
+
+loop For each purchased medicine
+  PurchaseAPI -> DB: Get/Create PharmacyMedicine
+  DB -> PurchaseAPI: PharmacyMedicine record
+  
+  PurchaseAPI -> DB: Update stock quantity\n(add purchased quantity)
+  DB -> PurchaseAPI: Stock updated
+  
+  PurchaseAPI -> DB: Create InventoryLog\n(reason: PURCHASE)
+  DB -> PurchaseAPI: Log created
+end
+
+PurchaseAPI -> DB: Mark purchase as finalized
+DB -> PurchaseAPI: Purchase finalized
+PurchaseAPI -> DB: Commit transaction
+PurchaseAPI -> Frontend: Purchase finalized successfully
+
+deactivate PurchaseAPI
+
+Frontend -> User: Goods received confirmation\n& inventory updated
+
+@enduml

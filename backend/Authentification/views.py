@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
@@ -145,7 +146,33 @@ class UserManagementViewSet(viewsets.ModelViewSet):
         # Only show users from the same pharmacy
         if self.request.user.pharmacy:
             return User.objects.filter(pharmacy=self.request.user.pharmacy)
+        elif hasattr(self.request.user, 'owned_pharmacy') and self.request.user.owned_pharmacy:
+            return User.objects.filter(pharmacy=self.request.user.owned_pharmacy)
         return User.objects.none()
+
+    def perform_create(self, serializer):
+        """Create new employee and assign to current user's pharmacy"""
+        if not (self.request.user.can_manage_users or self.request.user.is_pharmacist):
+            raise PermissionDenied("You don't have permission to create employees")
+        
+        # Get the pharmacy to assign the new user to
+        pharmacy = None
+        if self.request.user.pharmacy:
+            pharmacy = self.request.user.pharmacy
+        elif hasattr(self.request.user, 'owned_pharmacy') and self.request.user.owned_pharmacy:
+            pharmacy = self.request.user.owned_pharmacy
+        
+        if not pharmacy:
+            raise ValidationError("No pharmacy found for current user")
+        
+        # Save the new user with the pharmacy
+        user = serializer.save(pharmacy=pharmacy, created_by=self.request.user)
+        
+        # Set password if provided
+        password = self.request.data.get('password')
+        if password:
+            user.set_password(password)
+            user.save()
 
     @action(detail=True, methods=['patch'], url_path='permissions')
     def update_permissions(self, request, pk=None):

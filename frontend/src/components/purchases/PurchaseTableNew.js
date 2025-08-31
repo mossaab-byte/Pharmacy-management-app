@@ -7,7 +7,7 @@ const statusStyles = {
   cancelled: 'text-red-700 bg-red-100 px-2 py-1 rounded',
 };
 
-const PurchaseTable = ({ purchases = [], onView, onDelete, deletingId }) => {
+const PurchaseTable = ({ purchases = [], onView, onEdit, onDelete, deletingId }) => {
   // Ensure purchases is always an array
   const safePurchases = Array.isArray(purchases) ? purchases : [];
 
@@ -26,6 +26,7 @@ const PurchaseTable = ({ purchases = [], onView, onDelete, deletingId }) => {
           <th className="p-3 border border-gray-200">Date</th>
           <th className="p-3 border border-gray-200">Supplier</th>
           <th className="p-3 border border-gray-200">Total</th>
+          <th className="p-3 border border-gray-200">Items</th>
           <th className="p-3 border border-gray-200">Status</th>
           <th className="p-3 border border-gray-200">Actions</th>
         </tr>
@@ -34,16 +35,24 @@ const PurchaseTable = ({ purchases = [], onView, onDelete, deletingId }) => {
         {safePurchases.map(p => (
           <tr key={p.id || `purchase-${Math.random()}`} className="hover:bg-gray-50">
             <td className="p-3 border border-gray-200">
-              {p.date ? new Date(p.date).toLocaleDateString() : 'N/A'}
-            </td>
-            <td className="p-3 border border-gray-200">
-              {p.supplier_name || p.supplier || 'Unknown Supplier'}
-            </td>
-            <td className="p-3 border border-gray-200">
-              {p.total ? 
-                `${p.total.toFixed(2)} DH` : 
-                '0.00 DH'
+              {p.date || p.created_at ? 
+                new Date(p.date || p.created_at).toLocaleDateString() : 
+                'N/A'
               }
+            </td>
+            <td className="p-3 border border-gray-200">
+              {p.supplier_name || p.supplier?.name || 'Unknown Supplier'}
+            </td>
+            <td className="p-3 border border-gray-200">
+              {(() => {
+                const totalValue = p.total || p.total_amount;
+                const numericTotal = typeof totalValue === 'string' ? parseFloat(totalValue) : totalValue;
+                console.log('🔍 Purchase Total Display:', { id: p.id, totalValue, numericTotal, type: typeof totalValue });
+                return numericTotal ? `${numericTotal.toFixed(2)} DH` : '0.00 DH';
+              })()}
+            </td>
+            <td className="p-3 border border-gray-200">
+              {p.items_count || p.items?.length || 0} items
             </td>
             <td className="p-3 border border-gray-200 capitalize">
               <span className={statusStyles[p.status] || 'text-gray-700'}>
@@ -58,6 +67,16 @@ const PurchaseTable = ({ purchases = [], onView, onDelete, deletingId }) => {
                   aria-label={`View purchase ${p.id}`}
                 >
                   View
+                </Button>
+              )}
+              {onEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onEdit(p.id)}
+                  aria-label={`Edit purchase ${p.id}`}
+                >
+                  Edit
                 </Button>
               )}
               {onDelete && (

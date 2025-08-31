@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { Card, Button } from '../../components/UI';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,22 @@ import { Building, Settings, MapPin, ArrowLeft } from 'lucide-react';
 
 const PharmacySettingsPage = () => {
   const navigate = useNavigate();
+  const [pharmacyName, setPharmacyName] = useState('Mophar'); // Default fallback
+
+  useEffect(() => {
+    // Get pharmacy name from localStorage if available
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        if (user.pharmacy_name) {
+          setPharmacyName(user.pharmacy_name);
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+    }
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -35,7 +51,7 @@ const PharmacySettingsPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Pharmacy Name</p>
-                <p className="text-lg font-bold text-gray-900">Mophar</p>
+                <p className="text-lg font-bold text-gray-900">{pharmacyName}</p>
               </div>
             </div>
           </Card>

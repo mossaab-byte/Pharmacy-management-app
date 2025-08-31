@@ -119,6 +119,21 @@ const InventoryPage = () => {
   useEffect(() => {
     fetchLowStockItems();
     fetchInventoryStats();
+    
+    // Listen for inventory update events from sales or other operations
+    const handleInventoryUpdate = (event) => {
+      console.log('🔄 Inventory page received update event:', event.detail);
+      // Refresh all inventory data when updated
+      fetchAllInventory();
+      fetchLowStockItems();
+      fetchInventoryStats();
+    };
+    
+    window.addEventListener('inventoryUpdated', handleInventoryUpdate);
+    
+    return () => {
+      window.removeEventListener('inventoryUpdated', handleInventoryUpdate);
+    };
   }, []);
 
   const fetchAllInventory = async () => {

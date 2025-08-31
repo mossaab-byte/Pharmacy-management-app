@@ -1,0 +1,505 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Scan, X } from 'lucide-react';
+import { apiClient } from '../../services/apiClient';
+
+// Ultra-fast direct API calls with caching for instant search
+const searchCache = new Map();
+const MAX_CACHE_SIZE = 100;
+
+const directMedicineAPI = {
+  quickSearch: async (query, limit = 20) => {
+    try {
+      if (!query || query.length < 2) {
+        return { data: [] };
+      }
+      
+      // Check cache first for instant results
+      const cacheKey = `${query}_${limit}`;
+      if (searchCache.has(cacheKey)) {
+        console.log(`⚡ CACHE HIT for: "${query}"`);
+        return { data: searchCache.get(cacheKey) };
+      }
+      
+      console.log(`🔍 API SEARCH for: "${query}"`);
+      const response = await apiClient.get('/medicine/medicines/quick_search/', { 
+        params: { q: query, limit },
+        timeout: 3000  // 3 second timeout for fast response
+      });
+      
+      const results = response.data || [];
+      
+      // Cache results but limit cache size
+      if (searchCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = searchCache.keys().next().value;
+        searchCache.delete(firstKey);
+      }
+      searchCache.set(cacheKey, results);
+      
+      console.log(`✅ Found ${results.length} results for "${query}"`);
+      return { data: results };
+    } catch (error) {
+      console.error('❌ Search error:', error);
+      throw error;
+    }
+  },
+
+  searchByCode: async (code) => {
+    try {
+      console.log(`🔍 DIRECT API - Searching by code: "${code}"`);
+      const response = await apiClient.get('/medicine/medicines/search_by_code/', { 
+        params: { code } 
+      });
+      console.log(`✅ DIRECT API - Barcode search result:`, response.data?.found ? 'Found' : 'Not found');
+      return response;
+    } catch (error) {
+      console.error('❌ DIRECT API - Error searching by code:', error);
+      throw error;
+    }
+  }
+};
+
+// Mock service for fallback
+const mockMedicineService = {
+  quickSearch: async (query, limit) => {
+    console.log('🔧 MOCK - Searching for:', query);
+    const mockMedicines = [
+      {
+        id: 1,
+        nom_commercial: 'Paracetamol 500mg',
+        nom: 'Paracetamol 500mg',
+        dci1: 'Paracetamol',
+        forme: 'Comprimé',
+        code: 'PAR500',
+        prix_public: 5.99,
+        ph: 4.20, // Cost price for purchases
+        princeps_generique: 'G'
+      },
+      {
+        id: 2,
+        nom_commercial: 'Codoliprane 500mg',
+        nom: 'Codoliprane 500mg',
+        dci1: 'Codéine + Paracetamol',
+        forme: 'Comprimé',
+        code: 'COD500',
+        prix_public: 8.50,
+        ph: 6.20,
+        princeps_generique: 'P'
+      },
+      {
+        id: 3,
+        nom_commercial: 'Zepam 10mg',
+        nom: 'Zepam 10mg',
+        dci1: 'Diazépam',
+        forme: 'Comprimé',
+        code: 'ZEP10',
+        prix_public: 12.30,
+        ph: 9.20,
+        princeps_generique: 'G'
+      },
+      {
+        id: 4,
+        nom_commercial: 'Zepelin 5mg',
+        nom: 'Zepelin 5mg',
+        dci1: 'Zopiclone',
+        forme: 'Comprimé',
+        code: 'ZEP5',
+        prix_public: 15.75,
+        ph: 11.50,
+        princeps_generique: 'P'
+      }
+    ];
+    
+    const results = mockMedicines.filter(item => 
+      item.nom_commercial.toLowerCase().includes(query.toLowerCase()) ||
+      item.dci1.toLowerCase().includes(query.toLowerCase()) ||
+      item.code.toLowerCase().includes(query.toLowerCase())
+    ).slice(0, limit);
+    
+    console.log('🔧 MOCK - Found results:', results);
+    return { data: results };
+  },
+  searchByCode: async (code) => ({
+    data: ['PAR500', 'COD500'].includes(code) ? {
+      id: code === 'PAR500' ? 1 : 2,
+      nom_commercial: code === 'PAR500' ? 'Paracetamol 500mg' : 'Codoliprane 500mg',
+      nom: code === 'PAR500' ? 'Paracetamol 500mg' : 'Codoliprane 500mg',
+      dci1: code === 'PAR500' ? 'Paracetamol' : 'Codéine + Paracetamol',
+      forme: 'Comprimé',
+      code: code,
+      prix_public: code === 'PAR500' ? 5.99 : 8.50,
+      ph: code === 'PAR500' ? 4.20 : 6.20,
+      princeps_generique: code === 'PAR500' ? 'G' : 'P'
+    } : null
+  })
+};
+
+const MedicineSearchWithBarcode = ({ onSelect, onMedicineSelect, placeholder = "Rechercher médicaments...", className = "" }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [error, setError] = useState(null);
+  const searchRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  // Use either prop name for backwards compatibility
+  const handleMedicineSelect = onMedicineSelect || onSelect;
+
+  // Ultra-fast search with minimal debounce
+  const debouncedSearch = useCallback((query) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    if (query.trim().length >= 2) {
+      debounceRef.current = setTimeout(() => {
+        handleSearch(query);
+      }, 50); // Reduced from 150ms to 50ms for instant feel
+    } else if (query.trim().length === 0) {
+      setShowResults(false);
+      setResults([]);
+      setError(null);
+    }
+  }, []);
+
+  // Effect for search term changes
+  useEffect(() => {
+    debouncedSearch(searchTerm);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [searchTerm, debouncedSearch]);
+
+  // Lightning-fast search function
+  const handleSearch = async (query) => {
+    if (!query.trim() || query.length < 2) return;
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('⚡ Ultra-fast search for:', query);
+      
+      const response = await directMedicineAPI.quickSearch(query, 15);
+      const medicines = response.data || [];
+      
+      // Transform data for consistent display
+      const transformedMedicines = medicines.map(medicine => ({
+        ...medicine,
+        nom: medicine.nom || medicine.name || medicine.nom_commercial,
+        nom_commercial: medicine.nom_commercial || medicine.nom || medicine.name,
+        prix_public: medicine.prix_public || medicine.public_price || medicine.prix_br || medicine.ppv,
+        prix: medicine.prix_public || medicine.public_price || medicine.prix_br || medicine.ppv,
+        ppv: medicine.ppv || medicine.prix_public || medicine.public_price || medicine.prix_br
+      }));
+      
+      console.log(`⚡ Found ${transformedMedicines.length} medicines instantly`);
+      setResults(transformedMedicines);
+      setShowResults(transformedMedicines.length > 0);
+      
+      if (transformedMedicines.length === 0) {
+        setError('Aucun médicament trouvé');
+      }
+    } catch (err) {
+      console.error('❌ Search error:', err);
+      setError('Erreur de recherche');
+      setResults([]);
+      setShowResults(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+    const loadInitialMedicines = async () => {
+      if (initialLoaded) return;
+      
+      setLoading(true);
+      try {
+        console.log('🔄 Loading initial popular medicines...');
+        let medicines = [];
+        
+        // Simple approach: load medicines with common search terms
+        const searchTerms = ['para', 'a', 'c', 'b'];
+        
+        for (const term of searchTerms) {
+          if (medicines.length >= 15) break;
+          
+          try {
+            console.log(`🔍 Trying search term: "${term}"`);
+            const response = await directMedicineAPI.quickSearch(term, 5);
+            const results = response.data?.results || response.data || [];
+            
+            console.log(`✅ Found ${results.length} medicines for "${term}"`);
+            
+            // Add unique medicines (avoid duplicates)
+            const newMedicines = results.filter(m => 
+              !medicines.some(existing => existing.id === m.id)
+            );
+            medicines = [...medicines, ...newMedicines];
+            
+            // If we got some results, that's good enough
+            if (medicines.length > 0) break;
+            
+          } catch (e) {
+            console.warn(`⚠️ Search failed for "${term}":`, e.message);
+            continue;
+          }
+        }
+        
+        const transformedMedicines = medicines.slice(0, 15).map(medicine => ({
+          ...medicine,
+          nom: medicine.nom || medicine.name || medicine.nom_commercial,
+          nom_commercial: medicine.nom_commercial || medicine.nom || medicine.name,
+          prix_public: medicine.prix_public || medicine.public_price || medicine.prix_br || medicine.ppv,
+          prix: medicine.prix_public || medicine.public_price || medicine.prix_br || medicine.ppv,
+          ppv: medicine.ppv || medicine.prix_public || medicine.public_price || medicine.prix_br
+        }));
+        
+        console.log(`✅ Successfully loaded ${transformedMedicines.length} initial medicines`);
+        setResults(transformedMedicines);
+        setInitialLoaded(true);
+        
+        // Show a helpful message in console
+        if (transformedMedicines.length > 0) {
+          console.log('🎉 Initial medicines loaded! Users will see results when they focus the search field.');
+        }
+        
+      } catch (err) {
+        console.error('❌ Error loading initial medicines:', err);
+        console.log('📝 Note: Users will need to type to search for medicines');
+        // Don't show error for initial load, just set empty results
+        setResults([]);
+        setInitialLoaded(true); // Still mark as loaded to prevent retries
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialMedicines();
+  }, [initialLoaded]);
+
+  // Optimized debounced search for 5000+ medicines database
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    if (searchTerm.trim().length >= 2) {
+      debounceRef.current = setTimeout(() => {
+        handleSearch(searchTerm);
+      }, 150); // Faster search for better UX - reduced from 250ms
+    } else if (searchTerm.trim().length === 0) {
+      // Don't clear results immediately - keep showing initial medicines
+      setShowResults(false);
+      setError(null);
+    }
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [searchTerm]);
+
+  // Fast database search with optimized API calls - NO BULK LOADING
+  const handleSearch = async (query) => {
+    if (!query.trim() || query.length < 2) return;
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🔍 Real-time search for:', query);
+      
+      // Use direct API for instant search (no bulk loading)
+      const response = await directMedicineAPI.quickSearch(query, 20);
+      const medicines = response.data?.results || response.data || [];
+      
+      // Transform the data to ensure consistent field names for frontend
+      const transformedMedicines = medicines.map(medicine => ({
+        ...medicine,
+        nom: medicine.nom || medicine.name || medicine.nom_commercial,
+        nom_commercial: medicine.nom_commercial || medicine.nom || medicine.name,
+        prix_public: medicine.prix_public || medicine.public_price || medicine.prix_br || medicine.ppv,
+        prix: medicine.prix_public || medicine.public_price || medicine.prix_br || medicine.ppv,
+        ppv: medicine.ppv || medicine.prix_public || medicine.public_price || medicine.prix_br
+      }));
+      
+      console.log(`✅ Found ${transformedMedicines.length} medicines instantly`);
+      setResults(transformedMedicines);
+      setShowResults(transformedMedicines.length > 0);
+      
+      if (transformedMedicines.length === 0) {
+        setError('Aucun médicament trouvé');
+      }
+    } catch (err) {
+      console.error('❌ Search error:', err);
+      setError('Erreur de recherche dans la base de données');
+      setResults([]);
+      setShowResults(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelect = (medicine) => {
+    if (handleMedicineSelect) {
+      handleMedicineSelect(medicine);
+    }
+    setSearchTerm('');
+    setShowResults(false);
+    setError(null);
+  };
+
+  // Barcode search with direct database lookup - OPTIMIZED
+  const handleBarcodeSearch = async () => {
+    const code = prompt('Entrez le code-barres du médicament:');
+    if (code && code.trim()) {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('🔍 Barcode search for:', code);
+
+        const response = await directMedicineAPI.searchByCode(code.trim());
+        if (response.data) {
+          handleSelect(response.data);
+        } else {
+          setError('Médicament non trouvé avec ce code-barres');
+        }
+      } catch (err) {
+        console.error('❌ Barcode search error:', err);
+        setError('Erreur lors de la recherche par code-barres');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Clear search and close results
+  const clearSearch = () => {
+    setSearchTerm('');
+    setResults([]);
+    setShowResults(false);
+    setError(null);
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          ref={searchRef}
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={() => {
+            // Show initial results when focused if no search term
+            if (!searchTerm.trim() && results.length > 0) {
+              setShowResults(true);
+            }
+          }}
+          placeholder={placeholder}
+          className="block w-full pl-10 pr-20 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+        />
+        <div className="absolute inset-y-0 right-0 flex items-center">
+          {searchTerm && (
+            <button
+              onClick={clearSearch}
+              className="p-2 text-gray-400 hover:text-gray-600"
+              title="Effacer la recherche"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            onClick={handleBarcodeSearch}
+            className="p-2 text-gray-400 hover:text-gray-600 border-l border-gray-300"
+            title="Scanner code-barres"
+          >
+            <Scan className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+          <div className="p-3 text-center">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-600">Recherche en cours...</p>
+          </div>
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-red-300 rounded-md shadow-lg">
+          <div className="p-3 text-center">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {showResults && results.length > 0 && !loading && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {results.map((medicine) => (
+            <div
+              key={medicine.id}
+              onClick={() => handleSelect(medicine)}
+              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900 text-base">
+                    {medicine.nom || medicine.nom_commercial || 'Médicament inconnu'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {medicine.dci1 && `${medicine.dci1} • `}
+                    {medicine.forme || 'Forme inconnue'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {medicine.presentation || 'Présentation non spécifiée'}
+                  </p>
+                  {medicine.code && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Code: {medicine.code}
+                    </p>
+                  )}
+                  {medicine.stock !== undefined && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Stock: {medicine.stock} unités
+                    </p>
+                  )}
+                </div>
+                <div className="text-right ml-3">
+                  <p className="text-sm font-medium text-gray-900">
+                    {(parseFloat(medicine.ph || medicine.prix_public || medicine.ppv || 0) || 0).toFixed(2)} MAD
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {medicine.ph ? 'Cost Price' : 'Public Price'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {medicine.princeps_generique === 'P' ? 'Princeps' : 
+                     medicine.princeps_generique === 'G' ? 'Générique' : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showResults && results.length === 0 && searchTerm && !loading && !error && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+          <div className="p-3 text-center">
+            <p className="text-sm text-gray-600">Aucun médicament trouvé pour "{searchTerm}"</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MedicineSearchWithBarcode;

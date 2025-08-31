@@ -19,13 +19,8 @@ const SupplierForm = () => {
     state: '',
     postal_code: '',
     country: '',
-    tax_id: '',
-    license_number: '',
-    drug_license: '',
-    certification: '',
     credit_limit: 0,
     payment_terms: '',
-    delivery_schedule: '',
     minimum_order: 0,
     discount_rate: 0,
     notes: ''
@@ -137,37 +132,6 @@ const SupplierForm = () => {
           </div>
         </div>
 
-        {/* Legal & Certification Information */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Legal & Certification</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Tax ID" 
-              value={form.tax_id} 
-              onChange={e => handleChange('tax_id', e.target.value)} 
-              placeholder="Tax identification number"
-            />
-            <Input 
-              label="License Number" 
-              value={form.license_number} 
-              onChange={e => handleChange('license_number', e.target.value)} 
-              placeholder="Business license number"
-            />
-            <Input 
-              label="Drug License" 
-              value={form.drug_license} 
-              onChange={e => handleChange('drug_license', e.target.value)} 
-              placeholder="Pharmaceutical license number"
-            />
-            <Input 
-              label="Certification" 
-              value={form.certification} 
-              onChange={e => handleChange('certification', e.target.value)} 
-              placeholder="Quality certifications (ISO, GMP, etc.)"
-            />
-          </div>
-        </div>
-
         {/* Financial Terms */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-4 text-gray-700">Financial Terms</h3>
@@ -206,27 +170,14 @@ const SupplierForm = () => {
               onChange={e => handleChange('payment_terms', e.target.value)} 
               placeholder="e.g., Net 30, Cash on delivery"
             />
-          </div>
-        </div>
-
-        {/* Delivery & Operations */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Delivery & Operations</h3>
-          <div className="grid grid-cols-1 gap-4">
-            <Input 
-              label="Delivery Schedule" 
-              value={form.delivery_schedule} 
-              onChange={e => handleChange('delivery_schedule', e.target.value)} 
-              placeholder="e.g., Weekly on Tuesdays, On-demand"
-            />
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
               <textarea
                 value={form.notes}
                 onChange={e => handleChange('notes', e.target.value)}
-                placeholder="Additional notes about supplier (special requirements, quality notes, etc.)"
+                placeholder="Additional notes about supplier"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={4}
+                rows={3}
               />
             </div>
           </div>

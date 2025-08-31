@@ -16,6 +16,7 @@ const mockMedicineService = {
           forme: 'Tablet',
           code: 'PAR500',
           prix_public: 5.99,
+          ph: 4.20, // Cost price for purchases
           princeps_generique: 'Generic',
           dosage: '500mg',
           laboratoire: 'Generic Labs'
@@ -26,6 +27,7 @@ const mockMedicineService = {
           forme: 'Capsule',
           code: 'AMX250',
           prix_public: 12.50,
+          ph: 9.80, // Cost price for purchases
           princeps_generique: 'Generic',
           dosage: '250mg',
           laboratoire: 'Pharma Corp'
@@ -51,7 +53,8 @@ const mockMedicineService = {
         nom_commercial: 'Paracetamol 500mg',
         forme: 'Tablet',
         code: 'PAR500',
-        prix_public: 5.99
+        prix_public: 5.99,
+        ph: 4.20 // Cost price for purchases
       }
     ].filter(item => 
       item.nom_commercial.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,7 +69,8 @@ const mockMedicineService = {
         nom_commercial: 'Paracetamol 500mg',
         forme: 'Tablet',
         code: 'PAR500',
-        prix_public: 5.99
+        prix_public: 5.99,
+        ph: 4.20 // Cost price for purchases
       } : null
     }
   })

@@ -1,0 +1,43 @@
+@startuml Sale Process Sequence
+
+title Sales Transaction Process
+
+actor "Pharmacist" as Pharmacist
+participant "Frontend" as Frontend
+participant "Sales API" as SalesAPI
+participant "Inventory API" as InventoryAPI
+participant "Database" as DB
+
+Pharmacist -> Frontend: Scan/select medicines
+Frontend -> SalesAPI: Add items to cart
+Pharmacist -> Frontend: Confirm sale
+
+Frontend -> SalesAPI: POST /api/sales/\n{customer, items[]}
+
+activate SalesAPI
+SalesAPI -> DB: Begin transaction
+
+loop For each item
+  SalesAPI -> InventoryAPI: Check stock
+  InventoryAPI -> DB: Verify availability
+  DB -> InventoryAPI: Stock status
+  InventoryAPI -> SalesAPI: Stock confirmed
+end
+
+alt All items available
+  SalesAPI -> DB: Create sale record
+  SalesAPI -> DB: Create sale items
+  SalesAPI -> DB: Update inventory
+  SalesAPI -> DB: Generate invoice
+  SalesAPI -> DB: Commit transaction
+  SalesAPI -> Frontend: Sale completed\n+ invoice
+  Frontend -> Pharmacist: Print receipt
+else Insufficient stock
+  SalesAPI -> DB: Rollback transaction
+  SalesAPI -> Frontend: Error: Insufficient stock
+  Frontend -> Pharmacist: Display error
+end
+
+deactivate SalesAPI
+
+@enduml

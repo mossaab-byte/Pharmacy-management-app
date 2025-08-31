@@ -27,25 +27,8 @@ export const AuthProvider = ({ children }) => {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
         } else {
-          // Set mock user for development
-          const mockUser = {
-            id: 1,
-            username: 'marouaneTibary',
-            email: 'marouane@pharmacy.com',
-            first_name: 'Marouane',
-            last_name: 'Tibary',
-            pharmacy: {
-              id: 1,
-              name: 'PharmaGestion',
-              address: '123 Main St, City',
-              phone: '+212-555-0123',
-              email: 'contact@pharmagestion.com'
-            }
-          };
-          localStorage.setItem('user', JSON.stringify(mockUser));
-          localStorage.setItem('token', 'mock-token');
-          setUser(mockUser);
-          setToken('mock-token');
+          // No authentication data - user needs to log in
+          clearAuth();
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -60,37 +43,55 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (credentials) => {
     try {
-      // Mock login for development
-      const mockUser = {
-        id: 1,
-        username: credentials.username || 'marouaneTibary',
-        email: 'marouane@pharmacy.com',
-        first_name: 'Marouane',
-        last_name: 'Tibary',
-        pharmacy: {
-          id: 1,
-          name: 'PharmaGestion',
-          address: '123 Main St, City',
-          phone: '+212-555-0123',
-          email: 'contact@pharmagestion.com'
-        }
-      };
+      const response = await fetch('http://localhost:8000/api/token/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials)
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Store authentication data
+        localStorage.setItem('access_token', result.access);
+        localStorage.setItem('refresh_token', result.refresh);
+        localStorage.setItem('token', result.access);
+        
+        // Create user object with data from login response
+        const userObj = {
+          id: result.user_id,
+          username: result.username,
+          email: result.email,
+          first_name: result.first_name,
+          last_name: result.last_name,
+          is_pharmacist: result.is_pharmacist,
+          is_manager: result.is_manager,
+          can_manage_inventory: result.can_manage_inventory,
+          can_manage_sales: result.can_manage_sales,
+          can_manage_purchases: result.can_manage_purchases,
+          can_manage_users: result.can_manage_users,
+          can_view_reports: result.can_view_reports,
+          pharmacy: result.pharmacy
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userObj));
+        setToken(result.access);
+        setUser(userObj);
 
-      // Store tokens
-      localStorage.setItem('access_token', 'mock-access-token');
-      localStorage.setItem('refresh_token', 'mock-refresh-token');
-      localStorage.setItem('token', 'mock-access-token');
-      localStorage.setItem('user', JSON.stringify(mockUser));
-
-      setToken('mock-access-token');
-      setUser(mockUser);
-
-      return { success: true, user: mockUser };
+        return { success: true, user: userObj };
+      } else {
+        return { 
+          success: false, 
+          error: result.detail || result.message || 'Login failed' 
+        };
+      }
     } catch (error) {
       console.error('Login error:', error);
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Login failed' 
+        error: error.message || 'Login failed' 
       };
     }
   }, []);
@@ -111,12 +112,29 @@ export const AuthProvider = ({ children }) => {
 
   const refreshToken = useCallback(async () => {
     try {
-      // Mock refresh token
-      const access = 'mock-refreshed-token';
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('token', access);
-      setToken(access);
-      return access;
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await fetch('http://localhost:8000/api/token/refresh/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh: refreshToken })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const access = result.access;
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('token', access);
+        setToken(access);
+        return access;
+      } else {
+        throw new Error('Token refresh failed');
+      }
     } catch (error) {
       console.error('Token refresh error:', error);
       clearAuth();

@@ -1,0 +1,267 @@
+@startuml Reports Analytics - Simplified Use Cases
+
+!define PRIMARY_COLOR #E67E22
+!define SECONDARY_COLOR #3498DB
+!define SUCCESS_COLOR #27AE60
+!define WARNING_COLOR #E74C3C
+
+title <color:#E67E22><size:16><b>📊 RAPPORTS & ANALYTICS</b></size></color>\n<size:12><i>Diagramme Simplifié - Tableaux de Bord</i></size>
+
+left to right direction
+
+actor "<color:#2E86AB><b>💊 Pharmacien</b></color>" as Pharmacist #E3F2FD
+actor "<color:#A23B72><b>👨‍💼 Manager</b></color>" as Manager #FCE4EC
+actor "<color:#F18F01><b>👩‍💼 Employé</b></color>" as Employee #FFF8E1
+actor "<color:#8E44AD><b>🏛️ Autorités</b></color>" as Authorities #F4ECF7
+
+rectangle "<color:#E67E22><b>MODULE RAPPORTS & ANALYTICS</b></color>" as ReportsModule #FDF2E9 {
+
+  package "<color:#3498DB><b>💰 Rapports Ventes</b></color>" as SalesReports #EBF3FD {
+    usecase "<b>Rapport Ventes</b>" as UC_SalesReport #7FB3D3
+    usecase "<b>Analyse Tendances</b>" as UC_SalesTrends #7FB3D3
+    usecase "<b>Top Produits</b>" as UC_TopProducts #7FB3D3
+    usecase "<b>Performance Employés</b>" as UC_EmployeePerformance #7FB3D3
+  }
+
+  package "<color:#27AE60><b>📈 Rapports Financiers</b></color>" as FinancialReports #E8F8F5 {
+    usecase "<b>Bilan Comptable</b>" as UC_BalanceSheet #82E0AA
+    usecase "<b>Compte Résultat</b>" as UC_ProfitLoss #82E0AA
+    usecase "<b>Flux Trésorerie</b>" as UC_CashFlow #82E0AA
+    usecase "<b>Analyse Rentabilité</b>" as UC_Profitability #82E0AA
+  }
+
+  package "<color:#9B59B6><b>📦 Rapports Inventaire</b></color>" as InventoryReports #F4ECF7 {
+    usecase "<b>Valorisation Stock</b>" as UC_StockValuation #C39BD3
+    usecase "<b>Rotation Stock</b>" as UC_StockTurnover #C39BD3
+    usecase "<b>Alertes Stock</b>" as UC_StockAlerts #C39BD3
+    usecase "<b>Produits Périmés</b>" as UC_ExpiredProducts #C39BD3
+  }
+
+  package "<color:#F39C12><b>🛒 Rapports Achats</b></color>" as PurchaseReports #FEF9E7 {
+    usecase "<b>Analyse Achats</b>" as UC_PurchaseAnalysis #F8C471
+    usecase "<b>Performance Fournisseurs</b>" as UC_SupplierPerformance #F8C471
+    usecase "<b>Analyse Coûts</b>" as UC_CostAnalysis #F8C471
+  }
+
+  package "<color:#E74C3C><b>👥 Rapports Clients</b></color>" as CustomerReports #FDEDEC {
+    usecase "<b>Analyse Clientèle</b>" as UC_CustomerAnalysis #F1948A
+    usecase "<b>Fidélisation</b>" as UC_LoyaltyAnalysis #F1948A
+    usecase "<b>Segmentation</b>" as UC_CustomerSegmentation #F1948A
+  }
+
+  package "<color:#17A2B8><b>📋 Tableaux de Bord</b></color>" as Dashboards #D6EAF8 {
+    usecase "<b>Dashboard Principal</b>" as UC_MainDashboard #5DADE2
+    usecase "<b>KPIs Temps Réel</b>" as UC_RealTimeKPIs #5DADE2
+    usecase "<b>Tableau Exécutif</b>" as UC_ExecutiveDashboard #5DADE2
+  }
+}
+
+' Relations simplifiées par niveau d'accès
+Pharmacist -[#2E86AB,thickness=2]-> SalesReports : "<b>Analyses Complètes</b>"
+Pharmacist -[#2E86AB,thickness=2]-> FinancialReports : "<b>Gestion Financière</b>"
+Pharmacist -[#2E86AB,thickness=2]-> InventoryReports : "<b>Contrôle Stock</b>"
+Pharmacist -[#2E86AB,thickness=2]-> PurchaseReports : "<b>Stratégie Achats</b>"
+Pharmacist -[#2E86AB,thickness=2]-> CustomerReports : "<b>Analyse Clientèle</b>"
+Pharmacist -[#2E86AB,thickness=2]-> Dashboards : "<b>Vue Stratégique</b>"
+
+Manager -[#A23B72,thickness=2]-> SalesReports : "<b>Supervision</b>"
+Manager -[#A23B72,thickness=1]-> FinancialReports : "<b>Suivi</b>"
+Manager -[#A23B72,thickness=1]-> InventoryReports : "<b>Gestion</b>"
+Manager -[#A23B72,thickness=1]-> PurchaseReports : "<b>Optimisation</b>"
+Manager -[#A23B72,thickness=1]-> CustomerReports : "<b>Marketing</b>"
+Manager -[#A23B72,thickness=2]-> Dashboards : "<b>Pilotage</b>"
+
+Employee -[#F18F01,thickness=1]-> UC_SalesReport : "<b>Ventes</b>"
+Employee -[#F18F01,thickness=1]-> UC_StockAlerts : "<b>Alertes</b>"
+Employee -[#F18F01,thickness=1]-> UC_CustomerAnalysis : "<b>Service</b>"
+Employee -[#F18F01,thickness=1]-> UC_MainDashboard : "<b>Vue Opérationnelle</b>"
+
+Authorities -[#8E44AD,dashed]-> UC_BalanceSheet : "<b>Contrôle</b>"
+Authorities -[#8E44AD,dashed]-> UC_ProfitLoss : "<b>Audit</b>"
+Authorities -[#8E44AD,dashed]-> UC_CashFlow : "<b>Réglementation</b>"
+
+' Relations fonctionnelles simplifiées
+UC_SalesReport ..> UC_SalesTrends : <<include>>
+UC_BalanceSheet ..> UC_ProfitLoss : <<include>>
+UC_StockValuation ..> UC_StockTurnover : <<include>>
+UC_MainDashboard ..> UC_RealTimeKPIs : <<include>>
+UC_CustomerAnalysis ..> UC_LoyaltyAnalysis : <<extend>>
+
+' Légende claire
+legend bottom right
+|<color:#2E86AB>━━</color>| **Pharmacien** | Accès à tous les rapports |
+|<color:#A23B72>━━</color>| **Manager** | Rapports opérationnels |
+|<color:#F18F01>━</color>| **Employé** | Rapports de base |
+|<color:#8E44AD>┅┅</color>| **Autorités** | Rapports réglementaires |
+endlegend
+
+@enduml
+    usecase "Analyse ROI fournisseurs\n(Supplier ROI Analysis)" as UC_SupplierROI
+  }
+
+  package "Analytics Clients" {
+    usecase "Analyse comportement client\n(Customer Behavior Analysis)" as UC_CustomerBehavior
+    usecase "Segmentation clientèle\n(Customer Segmentation)" as UC_CustomerSegmentation
+    usecase "Analyse valeur vie client\n(Customer Lifetime Value)" as UC_CustomerLTV
+    usecase "Rapport fidélisation\n(Customer Retention Report)" as UC_CustomerRetention
+    usecase "Analyse satisfaction client\n(Customer Satisfaction Analysis)" as UC_CustomerSatisfaction
+    usecase "Prédiction abandons\n(Churn Prediction)" as UC_ChurnPrediction
+    usecase "Rapport clients VIP\n(VIP Customer Report)" as UC_VIPCustomers
+  }
+
+  package "Tableaux de Bord" {
+    usecase "Dashboard exécutif\n(Executive Dashboard)" as UC_ExecutiveDashboard
+    usecase "Dashboard opérationnel\n(Operational Dashboard)" as UC_OperationalDashboard
+    usecase "KPIs en temps réel\n(Real-time KPIs)" as UC_RealtimeKPIs
+    usecase "Alertes automatiques\n(Automated Alerts)" as UC_AutomatedAlerts
+    usecase "Dashboard personnalisé\n(Custom Dashboard)" as UC_CustomDashboard
+    usecase "Indicateurs performance\n(Performance Indicators)" as UC_PerformanceIndicators
+  }
+
+  package "Rapports Réglementaires" {
+    usecase "Rapport stupéfiants\n(Narcotics Report)" as UC_NarcoticsReport
+    usecase "Rapport médicaments contrôlés\n(Controlled Substances)" as UC_ControlledSubstances
+    usecase "Déclaration autorités\n(Authority Declaration)" as UC_AuthorityDeclaration
+    usecase "Rapport traçabilité\n(Traceability Report)" as UC_TraceabilityReport
+    usecase "Audit réglementaire\n(Regulatory Audit)" as UC_RegulatoryAudit
+    usecase "Rapport conformité\n(Compliance Report)" as UC_ComplianceReport
+  }
+
+  package "Analytics Avancés" {
+    usecase "Prédictions IA\n(AI Predictions)" as UC_AIPredictions
+    usecase "Analyse prédictive stock\n(Predictive Stock Analysis)" as UC_PredictiveStock
+    usecase "Optimisation prix\n(Price Optimization)" as UC_PriceOptimization
+    usecase "Détection anomalies\n(Anomaly Detection)" as UC_AnomalyDetection
+    usecase "Recommandations IA\n(AI Recommendations)" as UC_AIRecommendations
+    usecase "Machine Learning insights\n(ML Insights)" as UC_MLInsights
+  }
+}
+
+' Pharmacist permissions (full reporting access)
+Pharmacist --> UC_DailySalesReport
+Pharmacist --> UC_MonthlySalesReport
+Pharmacist --> UC_AnnualSalesReport
+Pharmacist --> UC_SalesByEmployee
+Pharmacist --> UC_SalesByMedicine
+Pharmacist --> UC_SalesTrends
+Pharmacist --> UC_TopProducts
+
+Pharmacist --> UC_BalanceSheet
+Pharmacist --> UC_ProfitLoss
+Pharmacist --> UC_CashFlow
+Pharmacist --> UC_ProfitMargin
+Pharmacist --> UC_ProfitabilityAnalysis
+Pharmacist --> UC_VATReport
+Pharmacist --> UC_FinancialForecasting
+
+Pharmacist --> UC_StockValuation
+Pharmacist --> UC_StockTurnover
+Pharmacist --> UC_LowStockReport
+Pharmacist --> UC_ExpiredReport
+Pharmacist --> UC_ABCAnalysis
+Pharmacist --> UC_StockMovements
+Pharmacist --> UC_DeadStock
+
+Pharmacist --> UC_PurchasesByPeriod
+Pharmacist --> UC_SupplierPerformance
+Pharmacist --> UC_AcquisitionCosts
+Pharmacist --> UC_PriceComparison
+Pharmacist --> UC_SupplierTrends
+Pharmacist --> UC_DeliveryTimes
+Pharmacist --> UC_SupplierROI
+
+Pharmacist --> UC_CustomerBehavior
+Pharmacist --> UC_CustomerSegmentation
+Pharmacist --> UC_CustomerLTV
+Pharmacist --> UC_CustomerRetention
+Pharmacist --> UC_CustomerSatisfaction
+Pharmacist --> UC_ChurnPrediction
+Pharmacist --> UC_VIPCustomers
+
+Pharmacist --> UC_ExecutiveDashboard
+Pharmacist --> UC_OperationalDashboard
+Pharmacist --> UC_RealtimeKPIs
+Pharmacist --> UC_AutomatedAlerts
+Pharmacist --> UC_CustomDashboard
+Pharmacist --> UC_PerformanceIndicators
+
+Pharmacist --> UC_NarcoticsReport
+Pharmacist --> UC_ControlledSubstances
+Pharmacist --> UC_AuthorityDeclaration
+Pharmacist --> UC_TraceabilityReport
+Pharmacist --> UC_RegulatoryAudit
+Pharmacist --> UC_ComplianceReport
+
+Pharmacist --> UC_AIPredictions
+Pharmacist --> UC_PredictiveStock
+Pharmacist --> UC_PriceOptimization
+Pharmacist --> UC_AnomalyDetection
+Pharmacist --> UC_AIRecommendations
+Pharmacist --> UC_MLInsights
+
+' Manager permissions (operational reporting)
+Manager --> UC_DailySalesReport
+Manager --> UC_MonthlySalesReport
+Manager --> UC_SalesByEmployee
+Manager --> UC_SalesByMedicine
+Manager --> UC_SalesTrends
+Manager --> UC_TopProducts
+
+Manager --> UC_ProfitMargin
+Manager --> UC_CashFlow
+
+Manager --> UC_StockValuation
+Manager --> UC_StockTurnover
+Manager --> UC_LowStockReport
+Manager --> UC_ExpiredReport
+Manager --> UC_ABCAnalysis
+Manager --> UC_StockMovements
+
+Manager --> UC_PurchasesByPeriod
+Manager --> UC_SupplierPerformance
+Manager --> UC_AcquisitionCosts
+Manager --> UC_PriceComparison
+
+Manager --> UC_CustomerBehavior
+Manager --> UC_CustomerSegmentation
+Manager --> UC_CustomerRetention
+Manager --> UC_VIPCustomers
+
+Manager --> UC_OperationalDashboard
+Manager --> UC_RealtimeKPIs
+Manager --> UC_AutomatedAlerts
+Manager --> UC_PerformanceIndicators
+
+Manager --> UC_TraceabilityReport
+
+Manager --> UC_PredictiveStock
+Manager --> UC_AnomalyDetection
+
+' Employee permissions (basic reporting)
+Employee --> UC_DailySalesReport
+Employee --> UC_LowStockReport
+Employee --> UC_ExpiredReport
+Employee --> UC_OperationalDashboard
+Employee --> UC_RealtimeKPIs
+
+' Authorities access (regulatory reports)
+Authorities --> UC_NarcoticsReport
+Authorities --> UC_ControlledSubstances
+Authorities --> UC_AuthorityDeclaration
+Authorities --> UC_TraceabilityReport
+Authorities --> UC_RegulatoryAudit
+Authorities --> UC_ComplianceReport
+
+' Use case relationships
+UC_ExecutiveDashboard ..> UC_RealtimeKPIs : <<include>>
+UC_OperationalDashboard ..> UC_AutomatedAlerts : <<include>>
+UC_SalesTrends ..> UC_TopProducts : <<include>>
+UC_CustomerBehavior ..> UC_CustomerSegmentation : <<include>>
+UC_AIPredictions ..> UC_MLInsights : <<include>>
+UC_PredictiveStock ..> UC_AnomalyDetection : <<include>>
+UC_RegulatoryAudit ..> UC_ComplianceReport : <<include>>
+UC_FinancialForecasting <.. UC_AIPredictions : <<extend>>
+UC_CustomerLTV <.. UC_ChurnPrediction : <<extend>>
+UC_PriceOptimization <.. UC_AIRecommendations : <<extend>>
+
+@enduml

@@ -1,0 +1,90 @@
+@startuml User Management - Simplified Use Cases
+
+!define PRIMARY_COLOR #9B59B6
+!define SECONDARY_COLOR #3498DB
+!define SUCCESS_COLOR #27AE60
+!define WARNING_COLOR #E74C3C
+
+title <color:#9B59B6><size:16><b>👨‍💼 GESTION DES UTILISATEURS</b></size></color>\n<size:12><i>Diagramme Simplifié - Administration Système</i></size>
+
+left to right direction
+
+actor "<color:#2E86AB><b>💊 Pharmacien</b></color>" as Pharmacist #E3F2FD
+actor "<color:#A23B72><b>👨‍💼 Manager</b></color>" as Manager #FCE4EC
+actor "<color:#F18F01><b>👩‍💼 Employé</b></color>" as Employee #FFF8E1
+actor "<color:#34495E><b>🔧 Admin Système</b></color>" as Admin #ECF0F1
+
+rectangle "<color:#9B59B6><b>MODULE GESTION UTILISATEURS</b></color>" as UserModule #F4ECF7 {
+
+  package "<color:#3498DB><b>🔐 Authentification</b></color>" as AuthPackage #EBF3FD {
+    usecase "<b>Se Connecter</b>" as UC_Login #7FB3D3
+    usecase "<b>Gérer Session</b>" as UC_ManageSession #7FB3D3
+    usecase "<b>Changer Mot de Passe</b>" as UC_ChangePassword #7FB3D3
+    usecase "<b>Sécurité Compte</b>" as UC_AccountSecurity #7FB3D3
+  }
+
+  package "<color:#27AE60><b>👥 Gestion Comptes</b></color>" as AccountsPackage #E8F8F5 {
+    usecase "<b>Créer Utilisateur</b>" as UC_CreateUser #82E0AA
+    usecase "<b>Modifier Profil</b>" as UC_EditProfile #82E0AA
+    usecase "<b>Consulter Utilisateurs</b>" as UC_ViewUsers #82E0AA
+    usecase "<b>Gérer État Compte</b>" as UC_ManageAccountState #82E0AA
+  }
+
+  package "<color:#F39C12><b>🎭 Gestion des Rôles</b></color>" as RolesPackage #FEF9E7 {
+    usecase "<b>Assigner Rôles</b>" as UC_AssignRoles #F8C471
+    usecase "<b>Modifier Rôles</b>" as UC_ModifyRoles #F8C471
+    usecase "<b>Consulter Rôles</b>" as UC_ViewRoles #F8C471
+  }
+
+  package "<color:#E74C3C><b>🔑 Gestion Permissions</b></color>" as PermissionsPackage #FDEDEC {
+    usecase "<b>Configurer Permissions</b>" as UC_ConfigPermissions #F1948A
+    usecase "<b>Assigner Permissions</b>" as UC_AssignPermissions #F1948A
+    usecase "<b>Contrôler Accès</b>" as UC_AccessControl #F1948A
+  }
+
+  package "<color:#17A2B8><b>📊 Suivi & Logs</b></color>" as LogsPackage #D6EAF8 {
+    usecase "<b>Audit Système</b>" as UC_SystemAudit #5DADE2
+    usecase "<b>Logs Activité</b>" as UC_ActivityLogs #5DADE2
+    usecase "<b>Rapport Sécurité</b>" as UC_SecurityReport #5DADE2
+  }
+}
+
+' Relations simplifiées par niveau d'accès
+Pharmacist -[#2E86AB,thickness=2]-> AuthPackage : "<b>Authentification</b>"
+Pharmacist -[#2E86AB,thickness=2]-> AccountsPackage : "<b>Gestion Équipe</b>"
+Pharmacist -[#2E86AB,thickness=2]-> RolesPackage : "<b>Administration</b>"
+Pharmacist -[#2E86AB,thickness=2]-> PermissionsPackage : "<b>Configuration</b>"
+Pharmacist -[#2E86AB,thickness=1]-> LogsPackage : "<b>Supervision</b>"
+
+Manager -[#A23B72,thickness=1]-> AuthPackage : "<b>Connexion</b>"
+Manager -[#A23B72,thickness=2]-> AccountsPackage : "<b>Gestion Personnel</b>"
+Manager -[#A23B72,thickness=1]-> RolesPackage : "<b>Consultation</b>"
+Manager -[#A23B72,thickness=1]-> UC_AccessControl : "<b>Contrôle</b>"
+Manager -[#A23B72,thickness=1]-> LogsPackage : "<b>Rapports</b>"
+
+Employee -[#F18F01,thickness=1]-> AuthPackage : "<b>Session Utilisateur</b>"
+Employee -[#F18F01,thickness=1]-> UC_EditProfile : "<b>Profil Personnel</b>"
+Employee -[#F18F01,thickness=1]-> UC_ViewRoles : "<b>Consultation</b>"
+
+Admin -[#34495E,thickness=2]-> AuthPackage : "<b>Administration</b>"
+Admin -[#34495E,thickness=2]-> AccountsPackage : "<b>Gestion Totale</b>"
+Admin -[#34495E,thickness=2]-> RolesPackage : "<b>Configuration</b>"
+Admin -[#34495E,thickness=2]-> PermissionsPackage : "<b>Sécurité</b>"
+Admin -[#34495E,thickness=2]-> LogsPackage : "<b>Audit Complet</b>"
+
+' Relations fonctionnelles simplifiées
+UC_Login ..> UC_ManageSession : <<include>>
+UC_CreateUser ..> UC_AssignRoles : <<include>>
+UC_AssignRoles ..> UC_AssignPermissions : <<include>>
+UC_ConfigPermissions ..> UC_AccessControl : <<include>>
+UC_SystemAudit ..> UC_ActivityLogs : <<include>>
+
+' Légende claire
+legend bottom right
+|<color:#2E86AB>━━</color>| **Pharmacien** | Administration complète |
+|<color:#A23B72>━━</color>| **Manager** | Gestion du personnel |
+|<color:#F18F01>━</color>| **Employé** | Gestion personnelle |
+|<color:#34495E>━━</color>| **Admin Système** | Configuration totale |
+endlegend
+
+@enduml

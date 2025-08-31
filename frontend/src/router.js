@@ -8,50 +8,31 @@ import {
 // Auth pages
 import LoginPage from './pages/Auth/LoginPageNew';
 import RegisterUserPage from './pages/Auth/RegisterUserPage';
-// import RegisterPharmacyPage from './pages/Auth/RegisterPharmacyPage'; // Temporarily commented out
+import RegisterPharmacyPageNew from './pages/Auth/RegisterPharmacyPageNew';
 
 // Dashboard - using the fancy stable dashboard with layout
 import DashboardStable from './pages/Dashboard/DashboardStable';
 import Layout from './components/layout/layout';
 
 // Main pages
-import MedicinesPage from './pages/Medicines/MedicinesPage';
 import SalesManagementPageStable from './pages/Sales/SalesManagementPageStable';
 import CustomerManagementPage from './pages/Customers/customerManagementPage';
 import PurchaseManagementPageStable from './pages/Purchases/PurchaseManagementPageStable';
 import PurchaseFormPage from './pages/Purchases/PurchaseFormPage';
+import WorkingPurchaseFormPage from './pages/Purchases/WorkingPurchaseFormPage';
 import PurchaseDetailPage from './pages/Purchases/purchaseDetailsPage';
 import SupplierManagementPage from './pages/Suppliers/SupplierManagementPage';
 import SupplierFormPage from './pages/Suppliers/SupplierFormPage';
 import SupplierPaymentPage from './pages/Suppliers/SupplierPaymentPage';
-import InventoryPageNew from './pages/inventory/InventoryPageNew'; // Your real inventory page
+import InventoryPageNew from './pages/Inventory/InventoryPageNew'; // Your real inventory page
+import EmployeeManagementPage from './pages/Employees/EmployeeManagementPage';
 
 // Sales components
 import WorkingSalesForm from './components/sales/WorkingSalesForm';
+import SaleDetail from './components/sales/saleDetail';
 
 // Components
 import PharmacyCheck from './components/PharmacyCheck';
-
-// Temporary simple pharmacy registration component
-const TempRegisterPharmacy = () => (
-  <div style={{ padding: '20px', textAlign: 'center' }}>
-    <h1>Register Your Pharmacy</h1>
-    <p>Pharmacy registration coming soon...</p>
-    <button 
-      onClick={() => window.location.href = '/login'}
-      style={{
-        backgroundColor: '#007bff',
-        color: 'white',
-        border: 'none',
-        padding: '10px 20px',
-        borderRadius: '4px',
-        cursor: 'pointer'
-      }}
-    >
-      Back to Login
-    </button>
-  </div>
-);
 
 // Simple auth check component
 const ProtectedRoute = ({ children }) => {
@@ -65,7 +46,7 @@ export default function AppRouter() {
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register-user" element={<RegisterUserPage />} />
-      <Route path="/register-pharmacy" element={<TempRegisterPharmacy />} />
+      <Route path="/register-pharmacy" element={<RegisterPharmacyPageNew />} />
       
       {/* Protected routes */}
       <Route path="/" element={
@@ -82,17 +63,6 @@ export default function AppRouter() {
           <PharmacyCheck>
             <Layout>
               <DashboardStable />
-            </Layout>
-          </PharmacyCheck>
-        </ProtectedRoute>
-      } />
-      
-      {/* Medicines Management */}
-      <Route path="/medicines" element={
-        <ProtectedRoute>
-          <PharmacyCheck>
-            <Layout>
-              <MedicinesPage />
             </Layout>
           </PharmacyCheck>
         </ProtectedRoute>
@@ -142,12 +112,34 @@ export default function AppRouter() {
         </ProtectedRoute>
       } />
       
+      {/* Sale Detail View */}
+      <Route path="/sales/:id" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <SaleDetail />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
       {/* Customer Management */}
       <Route path="/customers" element={
         <ProtectedRoute>
           <PharmacyCheck>
             <Layout>
               <CustomerManagementPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Employee Management */}
+      <Route path="/employees" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <EmployeeManagementPage />
             </Layout>
           </PharmacyCheck>
         </ProtectedRoute>
@@ -169,7 +161,7 @@ export default function AppRouter() {
         <ProtectedRoute>
           <PharmacyCheck>
             <Layout>
-              <PurchaseFormPage />
+              <WorkingPurchaseFormPage />
             </Layout>
           </PharmacyCheck>
         </ProtectedRoute>
@@ -180,7 +172,7 @@ export default function AppRouter() {
         <ProtectedRoute>
           <PharmacyCheck>
             <Layout>
-              <PurchaseFormPage />
+              <WorkingPurchaseFormPage />
             </Layout>
           </PharmacyCheck>
         </ProtectedRoute>

@@ -1,0 +1,76 @@
+@startuml Pharmacy Management System - Sales Process Sequence Diagram
+
+title Sales Transaction Process
+
+actor "Pharmacist/Manager" as User
+participant "Frontend\n(React)" as Frontend
+participant "Sales API\n(Django REST)" as SalesAPI
+participant "Inventory API\n(Django REST)" as InventoryAPI
+participant "Database" as DB
+
+== Sales Transaction Process ==
+
+User -> Frontend: Initiate new sale
+Frontend -> SalesAPI: GET /api/sales/customers/
+SalesAPI -> DB: Query customers
+DB -> SalesAPI: Customer list
+SalesAPI -> Frontend: Customer data
+Frontend -> User: Display customer selection
+
+User -> Frontend: Select customer\n& add medicines
+Frontend -> InventoryAPI: GET /api/pharmacy/pharmacy-medicines/full-inventory/
+InventoryAPI -> DB: Query available medicines
+DB -> InventoryAPI: Medicine inventory
+InventoryAPI -> Frontend: Available medicines with stock
+
+User -> Frontend: Search & select medicine
+Frontend -> User: Display medicine details\n& current stock
+
+User -> Frontend: Enter quantity & confirm
+Frontend -> Frontend: Validate stock availability
+Frontend -> SalesAPI: POST /api/sales/sales/\n{customer, items[]}
+
+activate SalesAPI
+SalesAPI -> SalesAPI: Validate sale data
+SalesAPI -> DB: Begin transaction
+
+alt Sufficient Stock Available
+  SalesAPI -> DB: Create Sale record
+  DB -> SalesAPI: Sale created
+  
+  loop For each sale item
+    SalesAPI -> DB: Create SaleItem record
+    DB -> SalesAPI: SaleItem created
+    
+    SalesAPI -> DB: Update PharmacyMedicine stock\n(reduce quantity)
+    DB -> SalesAPI: Stock updated
+    
+    SalesAPI -> DB: Create InventoryLog\n(reason: SALE)
+    DB -> SalesAPI: Log created
+  end
+  
+  SalesAPI -> DB: Calculate & update sale total
+  DB -> SalesAPI: Total updated
+  SalesAPI -> DB: Commit transaction
+  SalesAPI -> Frontend: Sale created successfully
+  
+else Insufficient Stock
+  SalesAPI -> DB: Rollback transaction
+  SalesAPI -> Frontend: Error: Insufficient stock
+  Frontend -> User: Display stock error
+end
+
+deactivate SalesAPI
+
+Frontend -> User: Display sale confirmation\n& receipt
+
+== Payment Processing (Optional) ==
+
+User -> Frontend: Add payment
+Frontend -> SalesAPI: POST /api/sales/payments/\n{sale_id, amount, method}
+SalesAPI -> DB: Create Payment record
+DB -> SalesAPI: Payment recorded
+SalesAPI -> Frontend: Payment confirmation
+Frontend -> User: Payment recorded
+
+@enduml

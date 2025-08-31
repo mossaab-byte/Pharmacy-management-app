@@ -410,3 +410,84 @@ def sales_stats(request):
             'threshold': threshold,
             'medicines': serializer.data
         })
+
+
+class LowStockView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get medicines with low stock"""
+        try:
+            from .models import PharmacyMedicine
+            user = request.user
+            threshold = int(request.query_params.get('threshold', 10))
+            
+            # Get user's pharmacy
+            pharmacy = None
+            if hasattr(user, 'pharmacy') and user.pharmacy:
+                pharmacy = user.pharmacy
+            elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+                pharmacy = user.owned_pharmacy
+            
+            if not pharmacy:
+                return Response({'error': 'No pharmacy associated with user'}, status=400)
+            
+            # Get low stock medicines
+            queryset = PharmacyMedicine.objects.filter(
+                pharmacy=pharmacy,
+                quantity__lte=threshold
+            ).select_related('medicine')
+            
+            medicines = []
+            for pm in queryset:
+                medicines.append({
+                    'id': pm.id,
+                    'medicine_name': pm.medicine.nom,
+                    'quantity': pm.quantity,
+                    'threshold': threshold
+                })
+            
+            return Response({
+                'count': len(medicines),
+                'threshold': threshold,
+                'medicines': medicines
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+
+class InventoryStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get inventory statistics"""
+        try:
+            from .models import PharmacyMedicine
+            user = request.user
+            
+            # Get user's pharmacy
+            pharmacy = None
+            if hasattr(user, 'pharmacy') and user.pharmacy:
+                pharmacy = user.pharmacy
+            elif hasattr(user, 'owned_pharmacy') and user.owned_pharmacy:
+                pharmacy = user.owned_pharmacy
+            
+            if not pharmacy:
+                return Response({'error': 'No pharmacy associated with user'}, status=400)
+            
+            # Get inventory stats
+            queryset = PharmacyMedicine.objects.filter(pharmacy=pharmacy)
+            
+            total_medicines = queryset.count()
+            in_stock = queryset.filter(quantity__gt=0).count()
+            out_of_stock = queryset.filter(quantity=0).count()
+            low_stock = queryset.filter(quantity__lte=10, quantity__gt=0).count()
+            
+            return Response({
+                'total_medicines': total_medicines,
+                'in_stock': in_stock,
+                'out_of_stock': out_of_stock,
+                'low_stock': low_stock
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

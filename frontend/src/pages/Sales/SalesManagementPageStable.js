@@ -74,7 +74,7 @@ const SalesManagementPageStable = () => {
 
   const handleEdit = (id) => {
     if (id) {
-      navigate(`/sales/edit/${id}`);
+      navigate(`/sales/${id}/edit`);
     }
   };
 

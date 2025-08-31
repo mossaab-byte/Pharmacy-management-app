@@ -1,0 +1,82 @@
+@startuml Sales Domain Classes
+
+title Sales & Order Management Classes
+
+!define ENTITY_COLOR #E1F5FE
+!define VALUE_COLOR #FFF3E0
+
+class Customer <<ENTITY_COLOR>> {
+  +UUID id
+  +String first_name
+  +String last_name
+  +String phone
+  +String email
+  +String address
+  +Date date_of_birth
+  +DateTime created_at
+  --
+  +String get_full_name()
+  +Integer get_age()
+  +void update_contact_info()
+}
+
+class Sale <<ENTITY_COLOR>> {
+  +UUID id
+  +UUID customer_id
+  +UUID pharmacist_id
+  +Decimal total_amount
+  +Decimal discount_amount
+  +String payment_method
+  +String status
+  +DateTime sale_date
+  +DateTime created_at
+  --
+  +void calculate_total()
+  +void apply_discount(amount)
+  +void process_payment()
+}
+
+class SaleItem <<VALUE_COLOR>> {
+  +UUID id
+  +UUID sale_id
+  +UUID medicine_id
+  +Integer quantity
+  +Decimal unit_price
+  +Decimal total_price
+  --
+  +void calculate_item_total()
+}
+
+class Invoice <<ENTITY_COLOR>> {
+  +UUID id
+  +UUID sale_id
+  +String invoice_number
+  +Decimal total_amount
+  +String status
+  +DateTime issue_date
+  +DateTime due_date
+  --
+  +void generate_pdf()
+  +Boolean is_paid()
+}
+
+class Payment <<ENTITY_COLOR>> {
+  +UUID id
+  +UUID sale_id
+  +Decimal amount
+  +String payment_method
+  +String status
+  +DateTime payment_date
+  --
+  +void process()
+  +void refund()
+}
+
+' Relationships
+Customer ||--o{ Sale : has
+Sale ||--o{ SaleItem : contains
+Sale ||--|| Invoice : generates
+Sale ||--o{ Payment : has_payments
+SaleItem }|--|| Medicine : includes
+
+@enduml

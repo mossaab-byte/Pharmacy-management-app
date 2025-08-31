@@ -250,8 +250,6 @@ const PurchaseDetailPage = () => {
                           <th className="border p-3 text-center">Quantity</th>
                           <th className="border p-3 text-center">Unit Cost</th>
                           <th className="border p-3 text-center">Subtotal</th>
-                          <th className="border p-3 text-center">Expiry</th>
-                          <th className="border p-3 text-center">Batch</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -271,12 +269,6 @@ const PurchaseDetailPage = () => {
                             <td className="border p-3 text-center">{formatCurrency(item.unit_cost || 0)}</td>
                             <td className="border p-3 text-center font-medium">
                               {formatCurrency(item.subtotal || 0)}
-                            </td>
-                            <td className="border p-3 text-center">
-                              {item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A'}
-                            </td>
-                            <td className="border p-3 text-center">
-                              {item.batch_number || 'N/A'}
                             </td>
                           </tr>
                         ))}

@@ -1,0 +1,51 @@
+@startuml Sales Management Use Cases
+
+title Sales & Order Management
+
+left to right direction
+
+actor "Pharmacist" as pharmacist
+actor "Manager" as manager
+
+package "Sales Management" {
+  usecase "Place Order" as UC1
+  usecase "Process Sale" as UC2
+  usecase "Generate Invoice" as UC3
+  usecase "Calculate Total" as UC4
+  usecase "Apply Discount" as UC5
+  usecase "Process Payment" as UC6
+}
+
+package "Reporting" {
+  usecase "View Sales Reports" as UC11
+  usecase "Generate Daily Report" as UC12
+  usecase "View Customer History" as UC13
+}
+
+' Pharmacist relationships
+pharmacist --> UC1
+pharmacist --> UC2
+pharmacist --> UC3
+pharmacist --> UC4
+pharmacist --> UC5
+pharmacist --> UC6
+pharmacist --> UC13
+
+' Manager relationships
+manager --> UC1
+manager --> UC2
+manager --> UC3
+manager --> UC4
+manager --> UC5
+manager --> UC6
+manager --> UC11
+manager --> UC12
+manager --> UC13
+
+' Include relationships
+UC2 ..> UC4 : <<include>>
+UC2 ..> UC6 : <<include>>
+UC2 ..> UC3 : <<include>>
+UC12 ..> UC11 : <<include>>
+
+@enduml

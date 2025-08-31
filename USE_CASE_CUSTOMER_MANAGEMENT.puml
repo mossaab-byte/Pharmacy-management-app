@@ -1,0 +1,80 @@
+@startuml Customer Management - Simplified Use Cases
+
+!define PRIMARY_COLOR #8E44AD
+!define SECONDARY_COLOR #3498DB
+!define SUCCESS_COLOR #27AE60
+!define WARNING_COLOR #F39C12
+
+title <color:#8E44AD><size:16><b>👥 GESTION DES CLIENTS</b></size></color>\n<size:12><i>Diagramme Simplifié - Fonctions Principales</i></size>
+
+left to right direction
+
+actor "<color:#2E86AB><b>💊 Pharmacien</b></color>" as Pharmacist #E3F2FD
+actor "<color:#A23B72><b>👨‍💼 Manager</b></color>" as Manager #FCE4EC
+actor "<color:#F18F01><b>👩‍💼 Employé</b></color>" as Employee #FFF8E1
+actor "<color:#C73E1D><b>🛍️ Client</b></color>" as Customer #FFEBEE
+
+rectangle "<color:#8E44AD><b>MODULE GESTION CLIENTS</b></color>" as ClientModule #F4F0FF {
+
+  package "<color:#3498DB><b>📝 Gestion Profil</b></color>" as ProfilePackage #EBF3FD {
+    usecase "<b>Créer Client</b>" as UC_Create #7FB3D3
+    usecase "<b>Modifier Client</b>" as UC_Edit #7FB3D3
+    usecase "<b>Consulter Clients</b>" as UC_View #7FB3D3
+    usecase "<b>Rechercher Client</b>" as UC_Search #7FB3D3
+  }
+
+  package "<color:#27AE60><b>📋 Historique & Suivi</b></color>" as HistoryPackage #E8F8F5 {
+    usecase "<b>Historique Achats</b>" as UC_History #82E0AA
+    usecase "<b>Suivi Fidélité</b>" as UC_Loyalty #82E0AA
+    usecase "<b>Profil Client</b>" as UC_Profile #82E0AA
+  }
+
+  package "<color:#F39C12><b>💳 Gestion Crédit</b></color>" as CreditPackage #FEF9E7 {
+    usecase "<b>Gérer Limite Crédit</b>" as UC_Credit #F8C471
+    usecase "<b>Consulter Solde</b>" as UC_Balance #F8C471
+    usecase "<b>Autoriser Crédit</b>" as UC_Authorize #F8C471
+  }
+
+  package "<color:#E74C3C><b>🎯 Service Client</b></color>" as ServicePackage #FDEDEC {
+    usecase "<b>Gérer Réclamations</b>" as UC_Complaints #F1948A
+    usecase "<b>Envoyer Notifications</b>" as UC_Notify #F1948A
+    usecase "<b>Programme Fidélité</b>" as UC_LoyaltyProgram #F1948A
+  }
+}
+
+' Relations simplifiées par niveau d'accès
+Pharmacist -[#2E86AB,thickness=2]-> ProfilePackage : "<b>Gestion Complète</b>"
+Pharmacist -[#2E86AB,thickness=2]-> HistoryPackage : "<b>Analyse Avancée</b>"
+Pharmacist -[#2E86AB,thickness=2]-> CreditPackage : "<b>Administration</b>"
+Pharmacist -[#2E86AB,thickness=2]-> ServicePackage : "<b>Supervision</b>"
+
+Manager -[#A23B72,thickness=2]-> ProfilePackage : "<b>Gestion</b>"
+Manager -[#A23B72,thickness=1]-> HistoryPackage : "<b>Consultation</b>"
+Manager -[#A23B72,thickness=1]-> CreditPackage : "<b>Supervision</b>"
+Manager -[#A23B72,thickness=1]-> ServicePackage : "<b>Support</b>"
+
+Employee -[#F18F01,thickness=1]-> ProfilePackage : "<b>Opérations</b>"
+Employee -[#F18F01,thickness=1]-> HistoryPackage : "<b>Consultation</b>"
+Employee -[#F18F01,thickness=1]-> UC_Balance : "<b>Vérification</b>"
+Employee -[#F18F01,thickness=1]-> UC_Complaints : "<b>Enregistrement</b>"
+
+Customer -[#C73E1D,dashed]-> UC_History : "<b>Personnel</b>"
+Customer -[#C73E1D,dashed]-> UC_Balance : "<b>Solde</b>"
+Customer -[#C73E1D,dashed]-> UC_Complaints : "<b>Réclamations</b>"
+
+' Relations fonctionnelles simplifiées
+UC_Create ..> UC_Credit : <<include>>
+UC_History ..> UC_Profile : <<include>>
+UC_Complaints ..> UC_Notify : <<extend>>
+
+' Légende claire
+legend bottom right
+|<color:#2E86AB>━━</color>| **Pharmacien** | Accès administratif complet |
+|<color:#A23B72>━━</color>| **Manager** | Gestion et supervision |
+|<color:#F18F01>━</color>| **Employé** | Opérations courantes |
+|<color:#C73E1D>┅┅</color>| **Client** | Consultation personnelle |
+endlegend
+
+@enduml
+
+@enduml

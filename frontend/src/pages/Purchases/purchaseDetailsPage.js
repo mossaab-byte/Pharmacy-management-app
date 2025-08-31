@@ -18,8 +18,12 @@ const PurchaseDetailPage = () => {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    console.log('🔍 PurchaseDetailPage mounted with ID:', id);
     if (id) {
       fetchPurchaseDetails();
+    } else {
+      console.log('❌ No purchase ID provided, redirecting to dashboard');
+      navigate('/dashboard');
     }
   }, [id]);
 
@@ -27,11 +31,26 @@ const PurchaseDetailPage = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🔍 Fetching purchase details for ID:', id);
       const data = await purchaseService.getById(id);
+      console.log('✅ Purchase detail data received:', data);
+      console.log('🔍 Purchase items:', data.items);
+      console.log('🔍 Purchase total fields:', { 
+        total: data.total, 
+        total_amount: data.total_amount,
+        supplier: data.supplier 
+      });
       setPurchase(data);
     } catch (error) {
-      console.error('Error fetching purchase details:', error);
-      setError('Failed to load purchase details. Please try again.');
+      console.error('❌ Error fetching purchase details:', error);
+      console.error('❌ Error details:', error.response?.data);
+      setError('Failed to load purchase details: ' + (error.message || 'Unknown error'));
+      
+      // If it's a 404 or permission error, redirect to purchases list
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        console.log('🔄 Redirecting to purchases list due to error');
+        setTimeout(() => navigate('/purchases'), 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -66,8 +85,22 @@ const PurchaseDetailPage = () => {
   };
 
   const formatCurrency = (amount) => {
-    if (typeof amount !== 'number') return '0.00 DH';
-    return `${amount.toFixed(2)} DH`;
+    console.log('🔍 FormatCurrency in PurchaseDetail:', { amount, type: typeof amount });
+    
+    // Handle string numbers from API
+    if (typeof amount === 'string') {
+      const numericAmount = parseFloat(amount);
+      if (!isNaN(numericAmount)) {
+        return `${numericAmount.toFixed(2)} DH`;
+      }
+    }
+    
+    // Handle numeric values
+    if (typeof amount === 'number' && !isNaN(amount)) {
+      return `${amount.toFixed(2)} DH`;
+    }
+    
+    return '0.00 DH';
   };
 
   const formatDate = (dateString) => {
@@ -163,7 +196,7 @@ const PurchaseDetailPage = () => {
                 <div>
                   <p className="text-sm text-gray-500">Total Amount</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {formatCurrency(purchase.total_amount || 0)}
+                    {formatCurrency(purchase.total || purchase.total_amount || 0)}
                   </p>
                 </div>
                 <div>
@@ -250,8 +283,6 @@ const PurchaseDetailPage = () => {
                           <th className="border p-3 text-center">Quantity</th>
                           <th className="border p-3 text-center">Unit Cost</th>
                           <th className="border p-3 text-center">Subtotal</th>
-                          <th className="border p-3 text-center">Expiry</th>
-                          <th className="border p-3 text-center">Batch</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -272,12 +303,6 @@ const PurchaseDetailPage = () => {
                             <td className="border p-3 text-center font-medium">
                               {formatCurrency(item.subtotal || 0)}
                             </td>
-                            <td className="border p-3 text-center">
-                              {item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A'}
-                            </td>
-                            <td className="border p-3 text-center">
-                              {item.batch_number || 'N/A'}
-                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -290,7 +315,7 @@ const PurchaseDetailPage = () => {
                       <div className="text-right">
                         <p className="text-sm text-blue-600 mb-1">Grand Total</p>
                         <p className="text-2xl font-bold text-blue-900">
-                          {formatCurrency(purchase.total_amount || 0)}
+                          {formatCurrency(purchase.total || purchase.total_amount || 0)}
                         </p>
                       </div>
                     </div>
