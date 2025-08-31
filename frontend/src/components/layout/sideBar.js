@@ -9,7 +9,6 @@ import {
   UserCheck,
   Building,
   User,
-  Settings,
   LogOut
 } from 'lucide-react';
 
@@ -25,7 +24,7 @@ const Sidebar = () => {
     { path: '/customers', label: 'Customers', icon: Users },
     { path: '/employees', label: 'Employees', icon: UserCheck },
     { path: '/suppliers', label: 'Suppliers', icon: Building },
-    { path: '/pharmacy', label: 'Settings', icon: Settings }
+    { path: '/profile', label: 'Mon Profil', icon: User }
   ];
 
   const handleLogout = () => {

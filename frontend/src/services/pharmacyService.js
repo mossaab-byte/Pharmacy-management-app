@@ -7,6 +7,23 @@ const pharmacyService = {
 
   updatePharmacyInfo: (data) => apiClient.put('/pharmacy/', data).then(res => res.data),
 
+  // Get current pharmacy details
+  getCurrentPharmacy: async () => {
+    try {
+      const response = await apiClient.get('/pharmacy/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching current pharmacy:', error);
+      // Return default pharmacy data if API fails
+      return {
+        name: 'PHARMACIE MODERNE',
+        address: 'Adresse de la pharmacie',
+        phone: 'Téléphone',
+        license_number: 'N° Licence'
+      };
+    }
+  },
+
   getPharmacyMedicines: (params = {}) => apiClient.get('/pharmacy/pharmacy-medicines/', { params }).then(res => res.data),
   
   getPharmacySales: (params = {}) => apiClient.get('/sales/sales/', { params }).then(res => res.data),

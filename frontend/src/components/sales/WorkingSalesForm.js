@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Minus, Save, ShoppingCart, UserPlus } from 'lucide-react';
+import { Plus, Minus, Save, ShoppingCart, UserPlus, FileText } from 'lucide-react';
 import { Button } from '../UI';
 import MedicineSearchWithBarcode from '../common/MedicineSearchWithBarcode';
 import SimpleMedicineAutocomplete from '../common/SimpleMedicineAutocomplete';
 import SimpleCustomerCreateModal from '../Customers/SimpleCustomerCreateModal';
 import * as salesServiceModule from '../../services/salesServiceNew';
 import customerService from '../../services/customerService';
+import pharmacyService from '../../services/pharmacyService';
+import InvoiceGenerator from '../../utils/InvoiceGenerator';
 import { useDashboard } from '../../context/SimpleDashboardContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
@@ -341,6 +343,49 @@ const WorkingSalesForm = () => {
     return saleItems.reduce((total, item) => total + (item.total || 0), 0).toFixed(2);
   };
 
+  const generateInvoice = async (saleResult, originalSaleData) => {
+    try {
+      console.log('🧾 Generating invoice for sale:', saleResult);
+      
+      // Get pharmacy data
+      const pharmacyData = await pharmacyService.getCurrentPharmacy();
+      
+      // Get customer data
+      let customerData = null;
+      if (selectedCustomer && selectedCustomer !== 'passage') {
+        customerData = customers.find(c => c.id === selectedCustomer);
+      }
+      
+      // Prepare invoice data
+      const invoiceData = {
+        id: saleResult.id,
+        created_at: saleResult.created_at || new Date().toISOString(),
+        total_amount: saleResult.total_amount || calculateTotal(),
+        customer: customerData || { name: 'Client de passage' },
+        items: saleItems.filter(item => item.medicine && item.quantity > 0).map(item => ({
+          name: item.medicine.name,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total: item.total
+        }))
+      };
+      
+      // Generate PDF
+      const invoiceGenerator = new InvoiceGenerator();
+      invoiceGenerator.generateInvoice(invoiceData, pharmacyData);
+      
+      // Open PDF in new window (popup)
+      invoiceGenerator.openInNewWindow();
+      
+      console.log('✅ Invoice generated successfully');
+      
+    } catch (error) {
+      console.error('❌ Error generating invoice:', error);
+      // Don't fail the sale if invoice generation fails
+      setMessage(prev => prev + ' (Facture non générée)');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -386,6 +431,9 @@ const WorkingSalesForm = () => {
         result = await salesService.createSale(saleData);
         console.log('✅ Sale created:', result);
         setMessage('✅ Vente créée avec succès!');
+        
+        // Generate and show PDF invoice for new sales
+        await generateInvoice(result, saleData);
       }
       
       // Refresh dashboard data

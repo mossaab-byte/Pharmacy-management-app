@@ -26,6 +26,7 @@ import SupplierFormPage from './pages/Suppliers/SupplierFormPage';
 import SupplierPaymentPage from './pages/Suppliers/SupplierPaymentPage';
 import InventoryPageNew from './pages/Inventory/InventoryPageNew'; // Your real inventory page
 import EmployeeManagementPage from './pages/Employees/EmployeeManagementPage';
+import ProfilePage from './pages/Profile/ProfilePage';
 
 // Sales components
 import WorkingSalesForm from './components/sales/WorkingSalesForm';
@@ -140,6 +141,17 @@ export default function AppRouter() {
           <PharmacyCheck>
             <Layout>
               <EmployeeManagementPage />
+            </Layout>
+          </PharmacyCheck>
+        </ProtectedRoute>
+      } />
+      
+      {/* Profile Management */}
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <PharmacyCheck>
+            <Layout>
+              <ProfilePage />
             </Layout>
           </PharmacyCheck>
         </ProtectedRoute>
